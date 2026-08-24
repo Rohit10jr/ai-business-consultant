@@ -1,0 +1,19 @@
+sku,name,category,supplier,unit_cost_2023,list_price
+APP-TEE-001,Classic Tee,Apparel,Supplier A,460.00,999.00
+APP-TEE-002,Oversized Tee,Apparel,Supplier A,490.00,1099.00
+APP-SHT-001,Linen Shirt,Apparel,Supplier A,740.00,1499.00
+APP-JOG-001,Joggers,Apparel,Supplier A,650.00,1299.00
+APP-HOD-001,Hoodie,Apparel,Supplier A,840.00,1799.00
+APP-SHO-001,Shorts,Apparel,Supplier A,430.00,899.00
+APP-DRS-001,Wrap Dress,Apparel,Supplier B,770.00,1599.00
+APP-TOP-001,Ribbed Top,Apparel,Supplier B,400.00,899.00
+APP-TRS-001,Wide-leg Trousers,Apparel,Supplier B,700.00,1399.00
+FTW-SNK-001,Everyday Sneaker,Footwear,Supplier C,1260.00,2499.00
+FTW-SLD-001,Slides,Footwear,Supplier C,500.00,1299.00
+FTW-LFR-001,Loafer,Footwear,Supplier C,1080.00,2199.00
+ACC-CAP-001,Cap,Accessories,Supplier D,170.00,499.00
+ACC-BLT-001,Belt,Accessories,Supplier D,220.00,599.00
+ACC-SCK-001,Crew Socks 3-pack,Accessories,Supplier D,145.00,399.00
+ACC-TOT-001,Tote Bag,Accessories,Supplier D,130.00,349.00
+BND-001,Starter Bundle (Tee + Socks),Apparel,Supplier A,460.00,1299.00
+ACC-SOCK-B,Crew Socks (bundle pack),Accessories,Supplier D,145.00,

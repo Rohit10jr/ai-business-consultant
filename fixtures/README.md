@@ -8,15 +8,17 @@ Nothing real ever goes in this directory.
 
 ## `acme-d2c/` — the reference corpus
 
-A fictional D2C brand with a margin problem. ~20 files. Matches
-[`../docs/WORKED_EXAMPLE.md`](../docs/WORKED_EXAMPLE.md) exactly, so that document doubles
-as the expected-output spec.
+A fictional D2C brand with a margin problem. ~20 files. Follows
+[`../docs/WORKED_EXAMPLE.md`](../docs/WORKED_EXAMPLE.md) in shape and in the direction and
+rough size of every planted number; the example is illustrative, and the **exact** values
+for this corpus — the ones tests assert against — are in `acme-d2c/EXPECTED.md`, computed
+by `build_acme.py` from the generated data. Where the two differ, `EXPECTED.md` wins.
 
 ```
 acme-d2c/
 ├── brief.md                     the client's vague pain, in their words
 ├── financials/
-│   ├── pnl_monthly.csv          36 months, contribution margin 32% -> 19%
+│   ├── pnl_monthly.csv          36 months, contribution margin ~30% -> ~20%
 │   └── cogs_by_sku.csv
 ├── orders/
 │   └── orders_export.csv        ~5,000 rows (not 400k — keep it testable)
