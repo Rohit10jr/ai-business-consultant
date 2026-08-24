@@ -122,6 +122,29 @@ class ReconciliationTests(unittest.TestCase):
                 )
                 self.assertEqual(int(row["orders"]), len(orders[m]))
 
+    def test_cost_lines_reconcile_to_their_source_files_and_to_each_other(self):
+        # cogs and return_handling cannot be re-derived without the generator's
+        # unit-cost drift (EXPECTED.md says so), so they are checked as parts of
+        # the contribution identity; the other lines come from their own files.
+        marketing, payroll = defaultdict(float), defaultdict(float)
+        for r in read_csv("marketing/spend_by_channel.csv"):
+            marketing[r["month"]] += float(r["spend"])
+        for r in read_csv("org/headcount.csv"):
+            payroll[r["month"]] += float(r["payroll_cost"])
+        for row in read_csv("financials/pnl_monthly.csv"):
+            m = row["month"]
+            f = {k: float(v) for k, v in row.items() if k != "month"}
+            with self.subTest(month=m):
+                self.assertAlmostEqual(f["marketing_spend"], marketing[m], places=2)
+                self.assertAlmostEqual(f["payroll"], payroll[m], places=2)
+                self.assertEqual(f["warehouse_rent"], 78400.0 if m >= "2026-01" else 56000.0)
+                contribution = (f["net_revenue"] - f["cogs"] - f["return_handling"]
+                                - f["shipping_cost"] - f["marketing_spend"])
+                self.assertAlmostEqual(f["contribution"], contribution, places=1)
+                self.assertAlmostEqual(f["contribution_margin_pct"], 100 * contribution / f["net_revenue"], places=1)
+                operating = f["contribution"] - f["warehouse_rent"] - f["payroll"] - f["other_opex"]
+                self.assertAlmostEqual(f["operating_profit"], operating, places=1)
+
     def test_shipping_cost_reconciles_to_courier_invoices(self):
         invoices = defaultdict(float)
         for r in read_csv("ops/courier_invoices.csv"):

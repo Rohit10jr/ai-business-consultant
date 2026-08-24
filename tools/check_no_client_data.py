@@ -10,8 +10,8 @@ is *tracked* (already committed on this branch, the CI case), and fails if:
 
 1. any path has a component named `engagements` - that directory is the
    client corpus and is gitignored entirely;
-2. any corpus-shaped file (.xlsx .xls .csv .pdf .pptx .docx) sits outside
-   `fixtures/` - the only place synthetic data is allowed;
+2. any corpus-shaped file (.xlsx .xls .csv .pdf .pptx .docx) sits outside a
+   known synthetic corpus (FIXTURE_CORPORA below);
 3. `.gitignore` has lost one of the client-data rules, or has grown a
    negation (`!pattern`) that is not on the reviewed allowlist. A negation
    re-includes what an earlier rule excluded, so a rule can be present and
@@ -33,9 +33,11 @@ DEFAULT_ROOT = Path(__file__).resolve().parent.parent
 # Any path with this directory component is client data, whatever the depth.
 CLIENT_DIR = "engagements"
 
-# File types a client corpus arrives in. Allowed only under FIXTURE_ROOT.
+# File types a client corpus arrives in. Allowed only under a known synthetic
+# corpus. Adding a corpus means adding it here in the same diff - a real export
+# dropped at fixtures/ root must fail, not pass by virtue of the directory name.
 CORPUS_SUFFIXES = {".xlsx", ".xls", ".csv", ".pdf", ".pptx", ".docx"}
-FIXTURE_ROOT = "fixtures"
+FIXTURE_CORPORA = {"fixtures/acme-d2c"}
 
 # .gitignore rules that must never disappear. Exact-line match.
 REQUIRED_IGNORE_RULES = [
@@ -44,6 +46,7 @@ REQUIRED_IGNORE_RULES = [
     "practice/tracker.csv",
     "**/practice/tracker.csv",
     "scratch/",
+    "documents/",
     "*.xlsx",
     "*.xls",
     "*.csv",
@@ -77,19 +80,32 @@ def find_violations(paths: list[str]) -> list[str]:
             )
             continue
         suffix = Path(parts[-1]).suffix
-        if suffix in CORPUS_SUFFIXES and parts[0] != FIXTURE_ROOT:
+        in_corpus = any("/".join(parts).startswith(c + "/") for c in FIXTURE_CORPORA)
+        if suffix in CORPUS_SUFFIXES and not in_corpus:
             violations.append(
-                f"{path}: `{suffix}` outside `{FIXTURE_ROOT}/` - corpus-shaped files are "
-                "client data unless they are synthetic fixtures. Move it under "
-                f"`{FIXTURE_ROOT}/` only if it is fictional; otherwise unstage it."
+                f"{path}: `{suffix}` outside a known synthetic corpus "
+                f"({', '.join(sorted(FIXTURE_CORPORA))}) - corpus-shaped files are client "
+                "data unless they are fixtures. If it is fictional, add its corpus root to "
+                "FIXTURE_CORPORA in tools/check_no_client_data.py; otherwise unstage it."
             )
     return violations
 
 
+def _gitignore_text(root: Path) -> str:
+    # Read the *index* copy when there is one: that is what the commit will
+    # contain. A weakened .gitignore staged and then restored in the working
+    # tree would otherwise pass while the commit carried the weak version.
+    staged = subprocess.run(
+        ["git", "show", ":.gitignore"], cwd=root, capture_output=True
+    )
+    if staged.returncode == 0:
+        return staged.stdout.decode("utf-8")
+    return (root / ".gitignore").read_text(encoding="utf-8")
+
+
 def check_gitignore(root: Path) -> list[str]:
-    path = root / ".gitignore"
     try:
-        lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
+        lines = [line.strip() for line in _gitignore_text(root).splitlines()]
     except OSError as exc:
         return [f".gitignore: unreadable: {exc}"]
     errors: list[str] = []

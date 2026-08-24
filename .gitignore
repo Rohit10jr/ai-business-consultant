@@ -17,6 +17,10 @@ practice/tracker.csv
 scratch/
 *.local.*
 
+# The practice's own source material for /setup - CV, past engagement
+# summaries, proposals. Past engagements name past clients.
+documents/
+
 # Common corpus file types, wherever they land outside engagements/.
 # Belt and braces — a stray export in the repo root is still client data.
 *.xlsx

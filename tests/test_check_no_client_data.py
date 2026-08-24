@@ -36,6 +36,11 @@ class FindViolationsTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(len(guard.find_violations([path])), 1)
 
+    def test_corpus_file_at_fixtures_root_is_rejected(self):
+        # Only the named synthetic corpora are exempt, not the directory name.
+        self.assertEqual(len(guard.find_violations(["fixtures/client_export.csv"])), 1)
+        self.assertEqual(len(guard.find_violations(["fixtures/other-client/pnl.xlsx"])), 1)
+
     def test_synthetic_fixtures_are_allowed(self):
         paths = [
             "fixtures/acme-d2c/orders/orders_export.csv",
@@ -110,6 +115,16 @@ class EndToEndTests(unittest.TestCase):
         result = self.run_guard()
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("engagements/acme/corpus/pnl.csv", result.stdout)
+
+    def test_weakened_gitignore_in_index_fails_even_if_working_tree_is_clean(self):
+        path = self.root / ".gitignore"
+        good = path.read_text(encoding="utf-8")
+        path.write_text(good.replace("engagements/\n", "", 1), encoding="utf-8")
+        self.git("add", ".gitignore")
+        path.write_text(good, encoding="utf-8")  # working tree looks fine again
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("'engagements/'", result.stdout)
 
     def test_committed_corpus_file_outside_fixtures_fails(self):
         target = self.root / "export.xlsx"
