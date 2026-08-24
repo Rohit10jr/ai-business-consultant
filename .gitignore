@@ -1,0 +1,55 @@
+# ---------------------------------------------------------------------------
+# CLIENT DATA — never commit. This is the one unrecoverable failure in this
+# repo: a client's P&L in a git history cannot be taken back.
+#
+# These rules exist before any real corpus does, deliberately. Do not relax
+# them. Do not add a negation without the owner's explicit decision.
+# See BUILD_PLAN.md §6 and RUNBOOK.md "The gate" §2.
+# ---------------------------------------------------------------------------
+engagements/
+**/engagements/
+
+# The practice tracker holds real client names alongside outcomes.
+practice/tracker.csv
+**/practice/tracker.csv
+
+# Scratch space for corpus extracts, intermediate pulls, working notes.
+scratch/
+*.local.*
+
+# Common corpus file types, wherever they land outside engagements/.
+# Belt and braces — a stray export in the repo root is still client data.
+*.xlsx
+*.xls
+*.csv
+*.pdf
+*.pptx
+*.docx
+
+# Test fixtures are synthetic and MUST stay tracked — they are how the
+# pipeline is gated without a real client. This is the only negation.
+!fixtures/**
+
+# ---------------------------------------------------------------------------
+# Ordinary noise
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/projects/
