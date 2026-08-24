@@ -1,0 +1,4 @@
+# LF everywhere. The fixture corpus is compared byte-for-byte against a fresh
+# build in tests/test_fixture_corpus.py; a CRLF checkout on Windows would fail
+# that test for no real reason.
+* text=auto eol=lf
