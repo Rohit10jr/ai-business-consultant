@@ -43,6 +43,14 @@ class EveryCommandTests(unittest.TestCase):
             with self.subTest(command=path.name):
                 self.assertGreaterEqual(len(UNTRUSTED.findall(path.read_text(encoding="utf-8"))), 2)
 
+    def test_untrusted_rule_is_carried_into_subagent_prompts(self):
+        # Present at the top is not enough; the rule must ride along into any
+        # subagent the command spawns (docs/REFERENCE_PATTERN.md §6).
+        carry = re.compile(r"Put this sentence in the prompt of any (such )?subagent")
+        for path in self.command_files():
+            with self.subTest(command=path.name):
+                self.assertRegex(path.read_text(encoding="utf-8"), carry)
+
     def test_no_outbound_capability_is_named(self):
         # BUILD_PLAN.md §5: the harness never sends anything. A command file
         # that mentions these is wiring toward a tool it must not have.
@@ -68,6 +76,12 @@ class ScopeTests(unittest.TestCase):
         self.assertRegex(gate, r"\*\*If the user says no.*stop here\.\*\*")
         self.assertIn("Do **not** write `scope.md`", gate)
         self.assertIn("TBD", gate)
+        # A disagreeing second derivation must be terminal, not a user choice,
+        # and the output template must have no slot for "disagrees by".
+        self.assertRegex(gate, r"\*\*If they disagree, there\s+is no baseline\.\*\*")
+        self.assertNotIn("disagrees by", self.text)
+        self.assertIn("row count before and after the join", gate)
+        self.assertIn("On **edit**", gate)
 
     def test_overwrite_and_question_gates_are_terminal(self):
         self.assertGreaterEqual(len(STOP_HERE.findall(self.text)), 2)

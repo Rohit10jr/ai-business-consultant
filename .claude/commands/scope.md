@@ -63,6 +63,11 @@ Present them numbered, then ask:
 
 **If the user gives none, stop here.** Write nothing.
 
+A question the user writes themselves is held to the same three criteria as yours. If it
+is more than one question, not answerable from the corpus, or not decision-shaped, say
+which criterion it fails and ask again. Do not proceed to Step 3 with a question that
+fails any of the three.
+
 ## Step 3: The baseline — hard gate
 
 A baseline is **one figure** the engagement will be measured against later. It has four
@@ -81,10 +86,13 @@ Rules for the source and derivation:
    never comes from your memory of similar companies, from a round number the client
    mentioned in passing, or from the brief alone.
 2. If the figure needs arithmetic, **do the arithmetic in this run** on the actual file —
-   read the rows, compute, and show the rows and the formula. Then derive it a second way
-   if the corpus allows (e.g. the same margin from the quarterly line and from the monthly
-   lines) and state whether the two agree. If they disagree, say so and use neither until
-   the user chooses.
+   read the rows, compute, and show the rows and the formula. If the derivation joins two
+   files, record the row count before and after the join and show both; a join that
+   changed the row count without a stated reason is not a derivation. Then derive the
+   figure a second way if the corpus allows (e.g. the same margin from the quarterly line
+   and from the monthly lines) and state whether the two agree. **If they disagree, there
+   is no baseline.** Say what the two values were and stop as in the gate below. The user
+   does not get to pick one; a figure with two values is not a figure.
 3. If the corpus contains no figure for the question the user chose, say exactly that, name
    what file would be needed, and ask the user whether they can supply the figure with a
    source (a file to add to the corpus, or an interview name and date).
@@ -93,6 +101,11 @@ Rules for the source and derivation:
 Then show the baseline and ask:
 
 > "Is this the baseline the engagement will be measured against? (yes / no / edit)"
+
+On **edit**: take the user's wording, then run rules 1–4 on the edited baseline again —
+re-read the source it names, redo the arithmetic, show it — and ask the same question
+again. An edit that drops a source, or names a source that is not in the corpus, is a no.
+"Use 19% for now" is a no.
 
 **If the user says no, or cannot supply a figure with a source, stop here.** Say: "No
 baseline — no scope. Add the figure to the corpus or name its source, then rerun `/scope
@@ -123,7 +136,7 @@ question:   <the one question, verbatim as agreed>
 baseline:   <value and unit>, <period with boundaries>
             source: <file path or interview note>
             derivation: <rows used and formula, or "stated directly at <file>:<line>">
-            second derivation: <how, and "agrees" | "disagrees by <x>" | "not possible — <why>">
+            second derivation: <how, and "agrees" | "not possible — <why>">
 done_when:  <as agreed>
 out_of_scope: <comma-separated list>
 scoped_on:  <YYYY-MM-DD>
