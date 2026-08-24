@@ -9,6 +9,8 @@ and record what the client actually accepted.
 
 **Status: greenfield.** Nothing is built yet. The plan is.
 
+> **Agents start at [`TASK.md`](TASK.md).**
+
 ## What it is not
 
 - Not a chatbot
@@ -53,10 +55,15 @@ any real corpus exists, and CI fails if anything under it is ever staged.
 
 | File | What it is |
 |---|---|
+| [`TASK.md`](TASK.md) | **Handoff entry point.** The assignment, reading order, phase 0 in detail |
 | [`CLAUDE.md`](CLAUDE.md) | Agent brief — rules, stack, reviewer policy |
 | [`BUILD_PLAN.md`](BUILD_PLAN.md) | Architecture, command surface, the grounding contract |
 | [`RUNBOOK.md`](RUNBOOK.md) | Phase plan and the gate each phase must pass |
 | [`AGENTS.md`](AGENTS.md) | Reviewer brief — what to check, and the trap shapes |
+| [`docs/WORKED_EXAMPLE.md`](docs/WORKED_EXAMPLE.md) | One engagement end to end, with real output shapes |
+| [`docs/CONSULTING_METHOD.md`](docs/CONSULTING_METHOD.md) | The domain — what consultants do, as an algorithm |
+| [`docs/REFERENCE_PATTERN.md`](docs/REFERENCE_PATTERN.md) | The architecture lessons this copies, distilled |
+| [`fixtures/README.md`](fixtures/README.md) | Spec for the synthetic test corpus |
 
 ## Prior art
 
@@ -66,9 +73,9 @@ The architecture is lifted from a working harness in a different domain, not inv
 D:\02_Personal\01_OpenSource\03_Applications\ai-job-search
 ```
 
-A job-application framework built on Claude Code — same shape, different nouns. Its
-`docs/` folder holds an architecture write-up, a data-flow map, and a catalogue of its own
-defects, all of which informed this plan. Read-only reference; see `CLAUDE.md`.
+A job-application framework built on Claude Code — same shape, different nouns.
+[`docs/REFERENCE_PATTERN.md`](docs/REFERENCE_PATTERN.md) distils what transfers, so that
+repo is optional reading. Read-only if you do open it.
 
 ## License
 

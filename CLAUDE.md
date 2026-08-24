@@ -14,48 +14,42 @@ Nothing exists yet. This is a greenfield build from a proven pattern.
 
 ## Read these first
 
+Start at [`TASK.md`](TASK.md) — it names your assignment and the reading order.
+
 | File | What it is |
 |---|---|
-| **`BUILD_PLAN.md`** | **The architecture, the command surface, the grounding contract. Read first** |
-| **`RUNBOOK.md`** | Phase plan, the gate each phase must pass, fail-stop rules. Read second |
+| **`TASK.md`** | **The assignment. Start here** |
+| **`BUILD_PLAN.md`** | Architecture, command surface, **the grounding contract (§3)** |
+| **`docs/WORKED_EXAMPLE.md`** | One engagement end to end. What you are building, made concrete |
+| `docs/CONSULTING_METHOD.md` | The domain — what consultants do, as an algorithm |
+| `docs/REFERENCE_PATTERN.md` | The architecture lessons this copies, distilled |
+| `RUNBOOK.md` | The loop, the gate, fail-stop rules, progress format |
 | `AGENTS.md` | The reviewer's brief — read it so you know what you will be judged on |
+| `fixtures/README.md` | Spec for the synthetic corpus phase 0 must build |
 
 ## The reference implementation
 
-The pattern this repo copies is proven in a real project. **Read it before writing
-anything**, and keep reading it when a design question comes up — most of them are already
-answered there.
+`docs/REFERENCE_PATTERN.md` distils what matters from a proven harness in a different
+domain, so **you do not need to read another repo to start**. Open the real thing only if a
+specific question survives that file.
 
 ```
 D:\02_Personal\01_OpenSource\03_Applications\ai-job-search
 ```
 
-That repo is a job-application harness — same architecture, different domain. It reached
-~19.5k stars, and the parts worth stealing are structural, not cosmetic.
+Worth knowing if you do: `.claude/commands/apply.md` (drafter/reviewer pattern),
+`.claude/commands/rank.md` (parallel scoring), `docs/ai-job-search/02-data-flow.md`
+(state ownership), `docs/ai-job-search/04-findings.md` (its real defects — do not
+reproduce them).
 
-**Read in this order:**
-
-| Path in that repo | Why |
-|---|---|
-| `docs/ai-job-search/01-architecture.md` | The execution model. **Start here** — explains what a `.md` command actually is |
-| `docs/ai-job-search/02-data-flow.md` | State files, single-writer ownership, the feedback loop |
-| `docs/project-ideas/03-consultant-engagement.md` | **This project's design sketch**, with a worked engagement |
-| `docs/project-ideas/business-consultant.md` | What consultants actually do, as an algorithm |
-| `.claude/commands/apply.md` | The drafter/reviewer pattern we are copying wholesale |
-| `.claude/commands/setup.md` | Multi-path onboarding — three entry points, one output |
-| `.claude/commands/rank.md` | Parallel scoring agents, weighted rubric, veto conditions |
-| `docs/ai-job-search/04-findings.md` | Its real defects. **Do not reproduce them** |
-| `docs/ai-job-search/06-upstream-gaps.md` | Its documentation failures. Same |
-
-**Read for structure, not for content.** Job postings and CVs have nothing to do with
-margin analysis. What transfers is: how a command file is written, where human gates go,
-how state is owned, how grounding is enforced, and what the machine is forbidden to do.
+**Read for structure, not content.** Job postings and CVs have nothing to do with margin
+analysis. What transfers is how a command file is written, where human gates go, how state
+is owned, how grounding is enforced, and what the machine is forbidden to do.
 
 ## Read that repo, do not edit it
 
-It is a separate git repo with its own remote and uncommitted work in progress. Treat it
-as **read-only reference**. Never `cd` into it to run git, never edit a file there, never
-commit there.
+Separate git repo, own remote, uncommitted work in progress. **Read-only reference.** Never
+`cd` into it to run git, never edit a file there, never commit there.
 
 ## Hard rules
 

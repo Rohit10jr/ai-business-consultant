@@ -2,8 +2,8 @@
 
 > Operative runbook. Phases 3-5 get their own file once phase 2's gate passes.
 
-Read [`CLAUDE.md`](CLAUDE.md) and [`BUILD_PLAN.md`](BUILD_PLAN.md) first. This file assumes
-both.
+Read [`TASK.md`](TASK.md), [`CLAUDE.md`](CLAUDE.md) and [`BUILD_PLAN.md`](BUILD_PLAN.md)
+first. This file assumes all three.
 
 ## Scope
 
@@ -42,19 +42,23 @@ report and stop rather than burning the run.
 ## Before you begin
 
 1. `git status` is clean, and you are on the right branch cut from the right parent.
-2. Read the reference repo's `docs/ai-job-search/01-architecture.md` and
-   `02-data-flow.md` if you have not this session. Twenty minutes, and it prevents
-   re-deriving decisions that are already made.
+2. Read `docs/REFERENCE_PATTERN.md` if you have not this session. Ten minutes, and it
+   prevents re-deriving decisions that are already made. It distils the reference repo,
+   so you do not need to open that repo to start.
 3. Confirm `codex` is on PATH: `codex --version`. If it is not, you are on tier 3 for the
    whole run — say so in the progress file.
-4. Check the synthetic corpus exists (`fixtures/acme-d2c/`). Phase 2 cannot be gated
-   without it; if phase 2 is in scope and it is missing, building it is the first task.
+4. Check the synthetic corpus exists (`fixtures/acme-d2c/`). **It will not — building it
+   is a phase 0 deliverable.** The spec is in `fixtures/README.md`, and
+   `docs/WORKED_EXAMPLE.md` is the expected-output document it must match. Phase 2 cannot
+   be gated without it.
 
 ## The loop
 
 Per phase:
 
-1. Read the phase row in `BUILD_PLAN.md` §7. That is the contract.
+1. Read the phase row in `BUILD_PLAN.md` §7, and the matching section of
+   `docs/WORKED_EXAMPLE.md`. Together they are the contract — the plan says what, the
+   example shows the shape.
 2. Write the smallest thing that could satisfy it.
 3. Commit. One commit per meaningful change — **not one per phase**.
 4. Repeat until the gate below passes.
@@ -159,13 +163,14 @@ One per phase, this format:
 ## Judgment calls
 
 **When the reference repo and this plan disagree**, this plan wins — it was written knowing
-that repo's defects (`docs/ai-job-search/04-findings.md`). But say so in the progress file;
+that repo's defects (`docs/REFERENCE_PATTERN.md` §9). But say so in the progress file;
 a disagreement usually means one of the two is wrong.
 
 **When the reference repo does something that looks wrong**, check
-`docs/ai-job-search/04-findings.md` first. Several of its rough edges are already
-catalogued — dead parsers with passing tests, a detail path that bypasses retry, a template
-that renders off-page. Do not reproduce them, and do not spend the run re-discovering them.
+`docs/REFERENCE_PATTERN.md` §9 first. Its rough edges are already catalogued — dead parsers
+with passing tests, one call site bypassing the shared retry helper, a CI gate that passes
+on a version downgrade. Do not reproduce them, and do not spend the run re-discovering
+them.
 
 **When something looks impossible**, it usually means a constraint is being read too
 strictly. Write down which constraint and why, then either find the reading that makes it
