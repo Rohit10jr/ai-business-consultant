@@ -135,6 +135,16 @@ class DiscoverTests(unittest.TestCase):
         self.assertIn("zero_price_lines_explained", self.text)
         self.assertIn("mix_at_boundaries", self.text)
 
+    def test_stated_figures_need_a_record_document_and_a_script(self):
+        # Review finding: "stated" must not be a bypass of the query rule. A stated
+        # figure comes only from a record document, never an interview, and is
+        # still produced by a script that prints the line.
+        self.assertIn("**only** when the document is a *record*", self.text)
+        self.assertIn("An interview, the brief, or a note\nof what someone said is never a record", self.text)
+        self.assertIn("A stated figure still gets a script run this turn", self.text)
+        self.assertIn('writing "not possible" is a\n   failed check', self.text)
+        self.assertNotIn("docs/CONSULTING_METHOD.md", self.text)
+
     def test_subagent_prompts_carry_the_whitelist(self):
         self.assertIn("do-not-read list from Step 0 verbatim", self.text)
         self.assertIn("**Re-run every returned query yourself before accepting the figure.**", self.text)
@@ -159,8 +169,10 @@ class RankTests(unittest.TestCase):
         self.assertIn("`unquantified` flag cannot exceed **park**", self.text)
 
     def test_annotation_is_additive_only(self):
-        self.assertIn("`rank_*` keys are the only keys `/rank` writes", self.text)
+        self.assertIn("`rank_*` keys and `status` are the only keys `/rank` writes", self.text)
         self.assertIn("byte-identical", self.text)
+        # status is the one shared key; the check must say it is set aside, not ignored.
+        self.assertIn("with `status` and the `rank_*` keys set aside", self.text)
         for key in ("rank_score", "rank_verdict", "rank_date", "rank_veto"):
             self.assertIn(key, self.text)
 

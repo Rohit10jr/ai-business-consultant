@@ -98,8 +98,9 @@ a margin computed without them is a guess with decimals.
 
 ## Step 2: Hypotheses and the issue tree — before running queries
 
-Write the candidate answers down *before* analysing, then try to kill them
-(`docs/CONSULTING_METHOD.md`: hypothesis-first). Take the scope question and decompose it
+Write the candidate answers down *before* analysing, then try to kill them. Deciding what
+would disprove a hypothesis before gathering evidence is the difference between analysis
+and motivated reasoning. Take the scope question and decompose it
 into branches that are **mutually exclusive and collectively exhaustive** for that
 question. For a margin question that is usually price/discount, volume and mix, unit cost,
 returns, fulfilment and shipping, acquisition cost, and fixed cost — but derive it from the
@@ -147,6 +148,24 @@ Each script, and the record of it, must:
 6. **Derive it a second way** where the corpus allows — the same margin from the P&L and
    rebuilt from the order lines; the same rate from two files. Print both. If they
    disagree and you cannot explain the gap from the corpus, the figure is not reported.
+   "Not possible" is a claim about the corpus, and it must name the files considered:
+   *"not possible — the only file carrying courier cost is `ops/courier_invoices.csv`;
+   checked `pnl_monthly.csv` (has the total, not the rate)"*. When two files carry the
+   same quantity at different grains — order lines and a monthly P&L, a rate card and an
+   invoice total — a second derivation **is** possible, and writing "not possible" is a
+   failed check, not a passed one.
+
+Figures that exist only in a document, not in the data — a rent per square foot in a
+lease, a rate on a rate card, a list price in a catalogue — may be recorded with
+`derivation_kind: stated`, **only** when the document is a *record*: a contract, an
+invoice, a price list, a rate card, an org table. An interview, the brief, or a note
+of what someone said is never a record; a figure that exists only there is a **claim**,
+and a claim is a hypothesis to test in Step 3, not a finding. If the data cannot confirm
+it, it goes under `not_recorded` as "stated only by <who> at <file>, not derivable".
+A stated figure still gets a script run this turn: one that opens the document and
+prints the exact line(s) carrying the figure, with the document's line count as
+`rows_in` and the matching lines as `rows_out`. The query for a stated figure is the
+quotation, produced by code, not by memory.
 
 Two checks that are easy to skip and expensive to skip:
 
@@ -243,10 +262,12 @@ Write exactly this shape. Slugs are lower-case, hyphenated, stable across re-run
 ```
 
 `known_to_client` is `false` or the corpus-relative path of the document where the client
-states it (an interview, the brief). `derivation_kind` is `stated` only when the figure
-exists nowhere in the data and comes from a document alone — and then `checks.sourced`
-names the document and line, `checks.second_derivation` is "not possible — stated only",
-and the finding says so in its title.
+states it (an interview, the brief). `derivation_kind` is `stated` only under the Step 3
+rule — a record document, never an interview or the brief — and then the figure's
+`query_text` is the script that printed the line, `checks.second_derivation` is "not
+possible — stated only, no data file carries it; checked <files>", and the title says
+"(stated in <file>)". A figure that is stated in a record *and* present in the data is
+derived from the data, and the record is its second derivation.
 
 `/discover` is the only writer of this file, and this file is the only thing `/discover`
 writes under `engagements/`. Query scripts live in `scratch/`, which is gitignored and

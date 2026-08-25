@@ -102,7 +102,7 @@ How far the finding's own evidence trail supports the number as stated.
 | `derivation_kind: joined` or `single-file`, all checks true, `second_derivation: agrees` | 85–100 |
 | derived, all checks true, second derivation "not possible" with a stated reason | 65–84 |
 | derived, `reconciles` states a named, explained gap | 45–64 |
-| `derivation_kind: stated` — the figure exists only in a document | 20–40 |
+| `derivation_kind: stated` — the figure exists only in a record document (a contract, invoice, rate card, price list), quoted by a script | 20–40 |
 | a rate finding with `mix_at_boundaries` showing the component mix shifted materially, and the finding does not separate mix from rate | cap at 60, flag `mix-confounded` |
 | a per-SKU or per-line margin finding whose `zero_price_lines_explained` is "n/a" or blank | cap at 30, flag `bundle-unchecked` |
 
@@ -175,12 +175,15 @@ Add to each scored finding, and change nothing else in it:
 Add to each vetoed finding: `"rank_veto": "<reason>"`, `"rank_date"`, and
 `"status": "vetoed"`.
 
-`rank_*` keys are the only keys `/rank` writes. It never edits `title`, `figures`,
-`checks`, `sources`, `magnitude` or anything else `/discover` wrote, never removes a
-finding, never reorders the file. `--all` replaces the `rank_*` keys with fresh values;
-they never accumulate. Write the file whole, then re-read it and confirm every
-non-`rank_*` key is byte-identical to what was loaded; if not, restore the loaded copy and
-say what went wrong.
+`rank_*` keys and `status` are the only keys `/rank` writes. `status` is the one key the
+two commands share by design: `/discover` sets `new`, `/rank` moves it to `ranked` or
+`vetoed`, `/investigate` will move it on from there. Everything else — `title`,
+`figures`, `checks`, `sources`, `magnitude`, and every other key `/discover` wrote — is
+never edited; no finding is removed; the file is never reordered. `--all` replaces the
+`rank_*` keys with fresh values; they never accumulate. Write the file whole, then
+re-read it and confirm that, with `status` and the `rank_*` keys set aside, every
+finding is byte-identical to what was loaded; if not, restore the loaded copy and say
+what went wrong.
 
 `/rank` writes nothing else — not `scope.md`, not `practice/`, nothing under `corpus/`.
 
@@ -237,6 +240,9 @@ say: "Run `/investigate <client> <slug>` for each." Do not run it. Stop here.
 5. **Triage depth only.** No corpus reads, no new queries, no research. `/rank` exists to
    be cheap enough to run after every `/discover`.
 6. **Additive annotation.** `rank_*` keys and `status` only; `/discover`'s content is
-   never rewritten. `/rank` never writes any other file.
+   never rewritten. `/rank` never writes any other file. A finding whose only evidence is
+   an interview quote should never reach this command — `/discover` records those under
+   `not_recorded` — and if one does, it has no `query_text` and the ungrounded veto
+   catches it.
 7. **Nothing under `engagements/` enters git.** Never `git add` it, never quote a finding's
    figure in a commit message.
