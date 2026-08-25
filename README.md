@@ -7,7 +7,9 @@ baseline, read the client's own document corpus, surface candidate findings they
 know were there, rank them, build the case on the top few, have a second agent attack it,
 and record what the client actually accepted.
 
-**Status: greenfield.** Nothing is built yet. The plan is.
+**Status: phases 0 and 1 are on `main`.** The client-data guard and CI, the synthetic
+test corpus, and the `/setup` and `/scope` command files. Phase 2 - `/discover` and
+`/rank` - is next; the assignment is in [`TASK.md`](TASK.md).
 
 > **Agents start at [`TASK.md`](TASK.md).**
 

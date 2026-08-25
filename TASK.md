@@ -3,18 +3,31 @@
 You are building **ai-business-consultant**, a Claude Code harness that runs a consulting
 engagement end to end.
 
-Nothing is built yet. You are starting from an empty repo with a plan.
+Phases 0 and 1 are built, reviewed and merged to `main`. Phase 2 is yours.
 
 ---
 
+## Already on `main` - do not rebuild
+
+| Phase | Delivered | Where |
+|---|---|---|
+| **0** | Client-data guard (staged, tracked **and history**), CI, the synthetic corpus | `tools/`, `.github/`, `fixtures/acme-d2c/` |
+| **1** | `/setup` and `/scope`, plus a lint test that pins their load-bearing sentences | `.claude/commands/`, `tests/test_command_files.py` |
+
+45 tests pass and CI is green. Read `PROGRESS_PHASE_0.md`, `PROGRESS_PHASE_1.md` and
+`RUN_REPORT.md` for what each gate showed and what is still soft.
+
+**One thing from phase 1 is unverified.** `/scope`'s baseline gate was checked by reading
+the command file, not by running it. Its empty-argument gate has since been confirmed live.
+If the owner has not yet run `/scope acme` against the fixture corpus and been refused at
+the baseline step, do that first - everything you build sits on top of it.
+
 ## Your assignment
 
-**Phases 0, 1 and 2.** Then stop.
+**Phase 2.** Then stop.
 
 | Phase | Branch | Delivers |
 |---|---|---|
-| **0** | `phase-0-skeleton` | Repo skeleton, the client-data CI guard, the synthetic fixture corpus |
-| **1** | `phase-1-scope` | `/setup` and `/scope` |
 | **2** | `phase-2-discover` | `/discover` and `/rank` |
 
 **HARD STOP after phase 2's gate passes.** Do not start phase 3. The grounding checklist is
