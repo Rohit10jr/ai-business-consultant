@@ -17,6 +17,12 @@ practice/tracker.csv
 scratch/
 *.local.*
 
+# Terminal paste of a command's output, for reviewing a run afterwards. A
+# transcript of a real engagement quotes client figures, so it is ignored
+# whatever it holds. `scratch/` is ignored too - prefer it for anything larger.
+consultant_response.md
+*_response.md
+
 # The practice's own source material for /setup - CV, past engagement
 # summaries, proposals. Past engagements name past clients.
 documents/
