@@ -469,7 +469,50 @@ Q3_FY24 = quarter_months(2024, 3)
 Q2_FY26 = quarter_months(2026, 2)
 
 
-def compute_expected(lines: list[Line], pnl: list[dict], marketing_rows_meta: dict) -> dict:
+def _export_iso(value: str) -> str:
+    # The March 2025 export ships DD/MM/YYYY; every other month is ISO. A reader
+    # has to normalise before grouping, so the answer key does too.
+    if "/" in value:
+        dd, mm, yy = value.split("/")
+        return f"{yy}-{mm}-{dd}"
+    return value
+
+
+def cac_from_export(out: Path, marketing_rows_meta: dict, q: set[str]) -> float:
+    """Meta CAC exactly as EXPECTED.md tells a reader to derive it - from the CSV.
+
+    Deliberately *not* computed from `lines`. Those objects carry a `first_order`
+    flag and a complete `customer_id` for every row, and neither survives export:
+    `write_orders` blanks ~2% of customer ids and appends one duplicate row. An
+    answer key computed from that hidden state names a figure the published corpus
+    cannot yield, and every consumer of this fixture reads the CSV. The two differ
+    by roughly 3% - small, but it would fail a correct run.
+
+    A first order is the earliest dated order for a customer id, on de-duplicated
+    rows with dates normalised. Lines with no customer id cannot be attributed to
+    a customer and are excluded from the denominator; EXPECTED.md says so.
+    """
+    seen: set[tuple[str, str]] = set()
+    first: dict[str, tuple[str, str]] = {}
+    with (out / "orders" / "orders_export.csv").open(encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            key = (row["order_id"], row["line_no"])
+            if key in seen:
+                continue
+            seen.add(key)
+            customer = row["customer_id"].strip()
+            if not customer:
+                continue
+            when = _export_iso(row["order_date"])
+            if customer not in first or when < first[customer][0]:
+                first[customer] = (when, row["channel"].strip())
+    acquired = sum(1 for when, channel in first.values()
+                   if channel == "Meta" and when[:7] in q)
+    spend = sum(v for k, v in marketing_rows_meta.items() if k in q)
+    return spend / acquired
+
+
+def compute_expected(out: Path, lines: list[Line], pnl: list[dict], marketing_rows_meta: dict) -> dict:
     def in_q(ln: Line, q: set[str]) -> bool:
         return month_key(ln.order_date) in q
 
@@ -498,13 +541,8 @@ def compute_expected(lines: list[Line], pnl: list[dict], marketing_rows_meta: di
     e["margin_q3fy24"] = margin(Q3_FY24)
     e["margin_q2fy26"] = margin(Q2_FY26)
 
-    def cac(q):
-        spend = sum(v for k, v in marketing_rows_meta.items() if k in q)
-        new = sum(1 for ln in lines if ln.line_no == 1 and ln.first_order and ln.channel == "Meta" and in_q(ln, q))
-        return spend / new
-
-    e["meta_cac_q3fy24"] = cac(Q3_FY24)
-    e["meta_cac_q2fy26"] = cac(Q2_FY26)
+    e["meta_cac_q3fy24"] = cac_from_export(out, marketing_rows_meta, Q3_FY24)
+    e["meta_cac_q2fy26"] = cac_from_export(out, marketing_rows_meta, Q2_FY26)
     e["courier_rate_increase_pct"] = 100 * (COURIER_STEPS[2026] - 1)
     orders_2026 = [ln for ln in lines if ln.line_no == 1 and in_q(ln, Q2_FY26)]
     e["free_shipping_share_q2fy26"] = 100 * sum(ln.shipping_charged == 0 for ln in orders_2026) / len(orders_2026)
@@ -544,7 +582,7 @@ Baseline for `/scope` is the Q2 FY26 figure.
 
 | # | Difficulty | Finding | Where it lives |
 |---|---|---|---|
-| 1 | Easy | Meta CAC ₹{e['meta_cac_q3fy24']:.0f} → ₹{e['meta_cac_q2fy26']:.0f} (Q3 FY24 → Q2 FY26) | Stated outright in `interviews/cfo.md`. Derivable: `marketing/spend_by_channel.csv` Meta spend ÷ first-order customers with `channel=Meta` in `orders/orders_export.csv` |
+| 1 | Easy | Meta CAC ₹{e['meta_cac_q3fy24']:.0f} → ₹{e['meta_cac_q2fy26']:.0f} (Q3 FY24 → Q2 FY26) | Stated outright in `interviews/cfo.md` (as ₹340 → ₹710 — the client rounds). Derived here from the export as published: `marketing/spend_by_channel.csv` Meta spend ÷ customers whose **earliest** order falls in the quarter with `channel=Meta`, over de-duplicated rows with dates normalised, **excluding the ~2% of lines with a blank `customer_id`** — those cannot be attributed to a customer |
 | 2 | Medium | Apparel return rate {e['apparel_return_q3fy24']:.1f}% → {e['apparel_return_q2fy26']:.1f}% | One aggregation over `orders/orders_export.csv`: `returned=Y` share by `category=Apparel` (excluding `BND-001`) by quarter |
 | 3 | **Hard** | Free-shipping threshold ₹{FREE_SHIPPING_THRESHOLD} unchanged since launch while courier base rates rose {e['courier_rate_increase_pct']:.0f}%; {e['free_shipping_share_q2fy26']:.0f}% of Q2 FY26 orders ship free | In no single file. Needs `ops/courier_invoices.csv` (rate card by month) joined to order values and `shipping_charged` in the export. The threshold itself appears only in `ops/sku_catalogue.md` and `interviews/marketing_lead.md` |
 | 4 | Medium | Discount codes stacking on {e['stacking_share_q2fy26']:.1f}% of orders since Jan 2025 (was {e['stacking_share_q3fy24']:.1f}%) | `discount_codes` with a `|` in the export. The cause (new checkout app) is a passing remark in `interviews/marketing_lead.md` |
@@ -826,7 +864,7 @@ def build(out: Path) -> dict:
         for row in csv.DictReader(f):
             if row["channel"] == "Meta":
                 meta_by_month[row["month"]] = float(row["spend"])
-    expected = compute_expected(lines, pnl, meta_by_month)
+    expected = compute_expected(out, lines, pnl, meta_by_month)
     write_expected(out, expected)
     return expected
 
