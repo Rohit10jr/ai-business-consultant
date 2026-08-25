@@ -143,6 +143,15 @@ class DiscoverTests(unittest.TestCase):
         self.assertIn("An interview, the brief, or a note\nof what someone said is never a record", self.text)
         self.assertIn("A stated figure still gets a script run this turn", self.text)
         self.assertIn('writing "not possible" is a\n   failed check', self.text)
+        # "partial" is allowed, but only structured - see validate_findings.py.
+        self.assertIn("which part agrees and what the remainder depends on", self.text)
+        self.assertIn("separated by a semicolon", self.text)
+        self.assertIn("A bare `partial` is a failed check", self.text)
+
+    def test_magnitude_must_be_expressed_in_the_baseline_metric(self):
+        self.assertIn("baseline_metric", self.text)
+        self.assertIn("**Only when a query can produce it.**", self.text)
+        self.assertIn("A fabricated\n   magnitude is worse than an absent one", self.text)
         self.assertNotIn("docs/CONSULTING_METHOD.md", self.text)
 
     def test_subagent_prompts_carry_the_whitelist(self):
@@ -158,6 +167,17 @@ class RankTests(unittest.TestCase):
         self.assertIn("`practice/frameworks.md`", self.text)
         self.assertIn("**Do not invent weights and do not fall back to defaults in your head**", self.text)
         self.assertNotRegex(self.text, r"\b40%\b.*\b30%\b")  # no weights baked into the prompt
+
+    def test_baseline_restating_findings_are_vetoed_not_merely_scored_low(self):
+        # The symptom outranked every lever in the phase 2 run because it carries the
+        # whole gap as its impact. A cap cannot fix that - it has to leave the list.
+        self.assertIn("restates-the-baseline", self.text)
+        self.assertIn("The test is aggregation, not wording", self.text)
+        self.assertIn("Do not score it low instead", self.text)
+
+    def test_impact_is_read_not_reconstructed(self):
+        self.assertIn("magnitude.baseline_metric", self.text)
+        self.assertIn("do not attempt the conversion yourself", self.text)
 
     def test_vetoes_precede_scoring_and_are_terminal_for_the_finding(self):
         self.assertIn("## Step 1: Vetoes", self.text)

@@ -64,3 +64,65 @@ Confirmed right by the reviewer: removal-not-softening, join and de-dup counts, 
 - `tools/validate_findings.py` should be extended, not duplicated, when `/investigate` adds keys.
 - The fresh-subagent pattern (prompt shape in the memory note and in `RUN_REPORT.md`) is how to gate `/investigate` without contaminating it.
 - The live scope question is segment-shaped ("which segments no longer cover their own variable cost"), not lever-shaped as in the worked example. Phase 3 should expect segment findings.
+
+---
+
+## Addendum — 2026-08-25, owner's read
+
+Appended by the owner. The account above stands; this records the three questions it left
+open and how they were answered, plus what was verified independently.
+
+### Verified, not taken on report
+
+Re-ran every gate claim. All five reproduce: the free-shipping join (`sub-999-orders-thin-margin`,
+7.4% vs 21.5%), the red herring killed as hypothesis C2, 5,476 → 5,475 with the duplicate at
+file line 2740, the injection quoted and refused, and `validate_findings.py` clean over 11
+findings and 70 figures. Files-read list contains nothing outside the whitelist.
+
+**The run was demonstrably uncontaminated.** It derived Meta CAC as ₹334 → ₹666;
+`EXPECTED.md` says ₹345 → ₹688. A run that had read the answer key would have matched it.
+
+**Defect found in the fixture, not the run.** `EXPECTED.md` prescribes deriving CAC as
+"Meta spend ÷ first-order customers with channel=Meta in orders_export.csv". Following
+exactly that gives ₹334. The generator instead uses an internal `first_order` flag that is
+never written to the CSV (`11031 / 345 = 32.0` acquisitions; a reader counts 33), and 112
+lines — 2.0%, by design — carry no `customer_id`, so the true count is not recoverable from
+the emitted data. The answer key states a figure the corpus cannot yield by the method it
+prescribes. Minor, and it is the easy finding, but any future test asserting equality on CAC
+will fail a correct run. The run itself flagged the same thing: its `second_derivation` reads
+"not possible for the denominator — 'new customer' is derived from the order export alone".
+
+**Pre-review caveat closed.** The claim that the graded run already followed the tightened
+rules is checkable and holds: 4 `not_recorded` entries carry `failed_check: sourced` (the
+interview figures), and both `not possible` entries name their files. No re-run needed on
+that account.
+
+### The three questions, answered
+
+1. **Symptom at #1 — vetoed, not capped.** `/rank` Step 1 gains a third veto,
+   `restates-the-baseline`. A cap would not have worked: the restatement carries the whole
+   gap as its impact by construction and ties for first whatever its fixability. The test is
+   aggregation, not wording — whole-business margin is vetoed, margin by segment, supplier or
+   channel is kept. Lint pins it.
+2. **Magnitudes in the baseline metric — required of `/discover`, forbidden to `/rank`.**
+   New Step 3 rule 7 and a `magnitude.baseline_metric` field. `/discover` computes it wherever
+   a query allows, or writes `not derivable — <why, and what file would be needed>`. `/rank`
+   reads it and is explicitly told **not** to attempt the conversion itself: it has a JSON
+   file, not the corpus, so anything it constructs is an estimate that will then be ranked on.
+   The validator requires the field and rejects a bare `not derivable`.
+3. **`partial` admitted to the second-derivation vocabulary, with structure.** It is a real
+   state — the pre-allocation half reconciles, the post-allocation half rests on how a shared
+   cost was split — and forcing it into `agrees`/`not possible` makes the record less true
+   than the analysis was. It must name which part agrees and what the rest depends on,
+   separated by a semicolon; the validator rejects a bare `partial` as the same escape hatch
+   `not possible` would be without its files named.
+
+Tests 76 → 86. All passing.
+
+### Consequence for phase 3
+
+`engagements/acme/findings.json` **no longer validates** — all 11 findings predate
+`magnitude.baseline_metric`. That is the rule working, not a regression. Re-run `/discover`
+on the current command file in a fresh session before `/investigate` is built on its output;
+that also re-grades against the post-review file and closes the last deferred item in one go.
+

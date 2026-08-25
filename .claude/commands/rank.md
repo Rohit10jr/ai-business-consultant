@@ -47,7 +47,7 @@ nothing else. This rule applies to every step below and rides into every scoring
 
 ## Step 1: Vetoes — before scoring
 
-Two vetoes, applied first, and a vetoed finding is **not scored**. It is listed separately
+Three vetoes, applied first, and a vetoed finding is **not scored**. It is listed separately
 with the reason so the human can see it was considered.
 
 1. **Out of scope.** A finding whose subject is on `scope.md`'s `out_of_scope` list is
@@ -60,6 +60,21 @@ with the reason so the human can see it was considered.
    is returned to `/discover` with the missing check named. **Do not score it lower to
    compensate; do not score it at all.** A confidence score of 20 on an unsourced figure
    still puts it on the table.
+3. **Restates the baseline.** A finding whose subject is the scope baseline's own metric at
+   the baseline's own level of aggregation is vetoed with reason `restates-the-baseline`. It
+   is the question, not an answer to it. `/scope` already recorded "contribution margin
+   19.7%, Q1 FY26" and had the client confirm it; a finding that says margin fell restates
+   what the engagement was hired to explain, and there is no action anyone can take called
+   "stop the margin falling".
+
+   **The test is aggregation, not wording.** Whole-business contribution margin: vetoed.
+   Contribution margin *on orders under ₹999*, *by supplier*, *by channel*: kept, because each
+   names something to act on. If a finding both restates the baseline and decomposes it,
+   veto the restatement and score the decomposition.
+
+   Do not score it low instead. Fixability alone will not sink it — the restatement carries
+   the largest impact by construction, since it *is* the whole gap, and it will tie for
+   first. It has to leave the list.
 
 ## Step 2: Score — parallel agents, ~5 findings each
 
@@ -80,10 +95,15 @@ agent is fine for ≤5). Each prompt contains, inline — the agent does not rea
 
 ### Impact (0–100)
 
-How much of the scope's baseline metric this finding accounts for, **computed from the
-finding's own figures**. If the baseline is a margin, express the finding in points of
-that margin: cost delta ÷ net revenue for the same period, from `figures`. Show the
-arithmetic in the rationale.
+How much of the scope's baseline metric this finding accounts for.
+
+**Read `magnitude.baseline_metric` first.** `/discover` is required to compute it wherever a
+query allows, so a finding that carries it needs no conversion from you — score the band and
+quote the figure. Where it reads `not derivable`, the reason is stated: score **10**, flag
+`unquantified`, and **do not attempt the conversion yourself** from the other figures.
+`/discover` had the corpus, the row counts and the ability to run a query; you have a JSON
+file. A magnitude you construct here is an estimate wearing a computed figure's clothes, and
+it will be ranked on.
 
 | Band | Score |
 |---|---|
@@ -160,6 +180,8 @@ Sort by score descending. Ties: the finding with the higher confidence first.
 Sanity check before presenting — say the result of each, in one line:
 
 - The top finding has a computed impact, not a flag.
+- No finding in the ranked list restates the baseline metric at the baseline's own level of
+  aggregation. Name the vetoed one if there was one.
 - No finding with `known_to_client` set outranks every finding without it purely on impact
   — if the client already knows the top three, say so; that is a result about the corpus,
   not a reason to reorder.

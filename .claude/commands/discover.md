@@ -155,6 +155,33 @@ Each script, and the record of it, must:
    invoice total — a second derivation **is** possible, and writing "not possible" is a
    failed check, not a passed one.
 
+   Sometimes only *part* of a figure can be confirmed: everything before an allocation
+   reconciles exactly, and everything after it rests on how a shared cost was split between
+   segments. That is a real state of the world, and forcing it into "agrees" or "not
+   possible" makes the record less true than the analysis was. Write `partial`, and **name
+   which part agrees and what the remainder depends on**, separated by a semicolon:
+   *"partial — the before-marketing figure (−12,780.46) does not depend on any allocation;
+   the after-marketing figure allocates channel spend to suppliers by order share"*.
+
+   A bare `partial` is a failed check — the same escape hatch "not possible" would be
+   without its files named. If you cannot say which half is solid, you have not checked.
+
+7. **Express the magnitude in the baseline's own metric** where a query can produce it
+   from the figures you already have. The engagement is measured against one number, and a
+   finding sized in a different unit cannot be compared with one sized in the baseline's —
+   `/rank` will park it as `unquantified` and it will sink whatever it is worth. If the
+   baseline is a margin, that means points of that margin: cost delta ÷ net revenue for the
+   same period, computed in a query like every other figure and recorded in
+   `magnitude.baseline_metric`.
+
+   **Only when a query can produce it.** Never convert by estimate, by a ratio of
+   convenience, or by judgement. This is the exact place the temptation to invent arrives:
+   a real finding, obviously large, and no clean path to the baseline's unit. A fabricated
+   magnitude is worse than an absent one, because `/rank` will rank on it and nobody will
+   see the seam. When it genuinely cannot be done, write
+   `"not derivable — <why, and what file would be needed>"` and stop there. That is a
+   complete, honest answer; a guess is not.
+
 Figures that exist only in a document, not in the data — a rent per square foot in a
 lease, a rate on a rate card, a list price in a catalogue — may be recorded with
 `derivation_kind: stated`, **only** when the document is a *record*: a contract, an
@@ -204,7 +231,7 @@ say so:
 | dates normalised | or the query did not group by date |
 | joins counted | row counts in and out printed for every join, and explained |
 | reconciles | components tie to their total, or the gap is stated with its cause |
-| second derivation | agrees, or is not possible and the reason is stated |
+| second derivation | agrees; or partial, naming which part agrees and what the rest depends on; or not possible with the files considered named |
 | zero-price lines explained | or the finding does not touch per-SKU or per-line margin |
 | in scope | it bears on the scope question and is not on the `out_of_scope` list |
 
@@ -233,7 +260,8 @@ Write exactly this shape. Slugs are lower-case, hyphenated, stable across re-run
     "<slug>": {
       "title": "<one line, with the magnitude and the period>",
       "branch": "<issue-tree branch>",
-      "magnitude": {"value": 0, "unit": "<pts of margin | ₹ | % | ratio>", "period": "<with boundaries>"},
+      "magnitude": {"value": 0, "unit": "<pts of margin | ₹ | % | ratio>", "period": "<with boundaries>",
+                    "baseline_metric": "<size in the baseline's own unit, naming the query that produced it | not derivable — <why, and what file would be needed>>"},
       "figures": [
         {"label": "<what it is>", "value": 0, "unit": "<unit>", "period": "<period>",
          "query": "scratch/<client>/discover/qNN_<name>.py",
@@ -246,7 +274,7 @@ Write exactly this shape. Slugs are lower-case, hyphenated, stable across re-run
       "checks": {
         "sourced": true, "deduplicated": true, "dates_normalised": true,
         "joins_counted": true, "reconciles": "<how, or n/a>",
-        "second_derivation": "agrees | not possible — <why>",
+        "second_derivation": "agrees | partial — <what agrees>; <what the rest depends on> | not possible — <why>",
         "zero_price_lines_explained": "<how, or n/a>"
       },
       "mix_at_boundaries": "<for rate findings: component mix at start and end, or n/a>",

@@ -18,7 +18,8 @@ def good() -> dict:
     }
     finding = {
         "title": "Apparel return rate 12% -> 27%", "branch": "returns",
-        "magnitude": {"value": 15.2, "unit": "pts", "period": "Q3 FY24 -> Q2 FY26"},
+        "magnitude": {"value": 15.2, "unit": "pts", "period": "Q3 FY24 -> Q2 FY26",
+                      "baseline_metric": "2.1 pts of contribution margin (q03_returns.py)"},
         "figures": [figure], "sources": ["orders/orders_export.csv"],
         "derivation_kind": "single-file", "known_to_client": False,
         "checks": {"sourced": True, "deduplicated": True, "dates_normalised": True, "joins_counted": True,
@@ -85,6 +86,59 @@ class ValidateTests(unittest.TestCase):
         d = copy.deepcopy(good())
         d["preflight"]["orders/orders_export.csv"]["rows_deduplicated"] = 9999
         self.assertTrue(any("rows_deduplicated" in e for e in v.validate(d)))
+
+
+
+class SecondDerivationVocabularyTests(unittest.TestCase):
+    """Fix 3: "partial" is admitted, but only when it says which half is solid."""
+
+    def _with(self, value):
+        d = good()
+        d["findings"]["apparel-returns"]["checks"]["second_derivation"] = value
+        return d
+
+    def test_structured_partial_passes(self):
+        d = self._with("partial - the before-marketing figure does not depend on any "
+                       "allocation; the after-marketing figure allocates channel spend by order share")
+        self.assertEqual(v.validate(d), [])
+
+    def test_bare_partial_fails(self):
+        errors = v.validate(self._with("partial"))
+        self.assertTrue(any("escape hatch" in e for e in errors), errors)
+
+    def test_freeform_answer_fails(self):
+        errors = v.validate(self._with("checked it and it looked fine"))
+        self.assertTrue(any("must begin with" in e for e in errors), errors)
+
+    def test_agrees_and_not_possible_still_pass(self):
+        self.assertEqual(v.validate(self._with("agrees")), [])
+        self.assertEqual(
+            v.validate(self._with("not possible - only pnl_monthly.csv carries it; checked cogs_by_sku.csv")),
+            [])
+
+
+class BaselineMetricTests(unittest.TestCase):
+    """Fix 2: a finding with no size in the baseline's unit ranks as if it were small."""
+
+    def test_missing_baseline_metric_fails(self):
+        d = good()
+        del d["findings"]["apparel-returns"]["magnitude"]["baseline_metric"]
+        errors = v.validate(d)
+        self.assertTrue(any("baseline_metric missing" in e for e in errors), errors)
+
+    def test_not_derivable_needs_a_reason(self):
+        d = good()
+        d["findings"]["apparel-returns"]["magnitude"]["baseline_metric"] = "not derivable"
+        errors = v.validate(d)
+        self.assertTrue(any("no reason" in e for e in errors), errors)
+
+    def test_not_derivable_with_a_reason_passes(self):
+        d = good()
+        d["findings"]["apparel-returns"]["magnitude"]["baseline_metric"] = (
+            "not derivable - no file carries returns by value before 2024; would need a "
+            "refunds export"
+        )
+        self.assertEqual(v.validate(d), [])
 
 
 if __name__ == "__main__":

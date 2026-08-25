@@ -18,6 +18,12 @@ Checks:
   a `query` path under scratch/
 - `derivation_kind: stated` findings say so in their title and have a
   second derivation of "not possible"
+- `second_derivation` uses the allowed vocabulary, and a "partial" names which
+  part agrees and what the rest depends on - a bare "partial" is the same
+  escape hatch "not possible" would be without its files named
+- every finding carries `magnitude.baseline_metric`: its size in the baseline's
+  own unit, or "not derivable" with a reason. `/rank` scores impact from this,
+  and a finding that omits it silently ranks as if it were small
 - no rank_* keys unless `status` is `ranked` or `vetoed` (i.e. /rank wrote them)
 
 Exit 0 when clean, 1 with a list otherwise. Stdlib only.
@@ -37,6 +43,10 @@ BOOL_CHECKS = ("sourced", "deduplicated", "dates_normalised", "joins_counted")
 TEXT_CHECKS = ("reconciles", "second_derivation", "zero_price_lines_explained")
 # Words that mean a check was talked around rather than passed.
 HEDGES = ("roughly", "approximately", "about ", "probably", "assumed", "estimated", "tbd")
+
+# The only three answers to "did you derive it a second way?". Anything else is a
+# sentence that reads like a check and is not one.
+SECOND_DERIVATION_START = ("agrees", "partial", "not possible")
 
 
 def validate(data: dict) -> list[str]:
@@ -84,6 +94,32 @@ def validate(data: dict) -> list[str]:
                 errors.append(f"{where}: checks.{k} is empty")
             elif any(h in v.lower() for h in HEDGES):
                 errors.append(f"{where}: checks.{k} hedges ({v!r}) - a check passes or the finding is removed")
+        second = str(checks.get("second_derivation", "")).strip()
+        if second and not second.lower().startswith(SECOND_DERIVATION_START):
+            errors.append(
+                f"{where}: checks.second_derivation must begin with "
+                f"{' / '.join(SECOND_DERIVATION_START)} - got {second!r}"
+            )
+        if second.lower().startswith("partial") and ";" not in second:
+            errors.append(
+                f"{where}: checks.second_derivation is 'partial' without a ';' - name which part "
+                "agrees and what the rest depends on. A bare 'partial' is the same escape hatch "
+                "'not possible' would be without its files named"
+            )
+        magnitude = f.get("magnitude")
+        if isinstance(magnitude, dict):
+            baseline = str(magnitude.get("baseline_metric", "")).strip()
+            if not baseline:
+                errors.append(
+                    f"{where}: magnitude.baseline_metric missing - give the size in the baseline's "
+                    "own unit with the query that produced it, or 'not derivable - <why>'. Without "
+                    "it /rank parks the finding as unquantified and it sinks whatever it is worth"
+                )
+            elif baseline.lower().startswith("not derivable") and not baseline[13:].strip(" -\u2014:"):
+                errors.append(
+                    f"{where}: magnitude.baseline_metric says 'not derivable' with no reason - say "
+                    "why, and what file would be needed"
+                )
         if f["derivation_kind"] not in ("joined", "single-file", "stated"):
             errors.append(f"{where}: derivation_kind {f['derivation_kind']!r} not recognised")
         if f["derivation_kind"] == "stated":
