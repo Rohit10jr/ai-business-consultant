@@ -1,20 +1,22 @@
-# Unattended Run — Phases 0 to 2
+# Unattended Run — Phase 2
 
-> Operative runbook. Phases 3-5 get their own file once phase 2's gate passes.
+> Operative runbook. Phases 0 and 1 are done and on `main`; phases 3-5 get their own file
+> once phase 2's gate passes.
 
 Read [`TASK.md`](TASK.md), [`CLAUDE.md`](CLAUDE.md) and [`BUILD_PLAN.md`](BUILD_PLAN.md)
 first. This file assumes all three.
 
 ## Scope
 
-**Three phases: 0, 1, 2.** Each on its own branch, each cut from the previous phase's
-completed tip, each with its own progress file.
+**One phase: 2.** `/discover` and `/rank`. Phases 0 and 1 are merged to `main` - do not
+rebuild them.
 
 | Phase | Branch | Cut from | Progress file |
 |---|---|---|---|
-| 0 | `phase-0-skeleton` | `main` | `PROGRESS_PHASE_0.md` |
-| 1 | `phase-1-scope` | `phase-0-skeleton` | `PROGRESS_PHASE_1.md` |
-| 2 | `phase-2-discover` | `phase-1-scope` | `PROGRESS_PHASE_2.md` |
+| 2 | `phase-2-discover` | `main` | `PROGRESS_PHASE_2.md` |
+
+The full brief - what the gate actually checks, and how to grade it without cheating - is in
+[`TASK.md`](TASK.md) §"Phase 2 in detail". Read that before writing anything.
 
 ## HARD STOP
 
@@ -30,8 +32,9 @@ design is settled.
 
 ## Order and pacing
 
-**0 → 1 → 2.** Phase 0 first because its CI guard protects everything after it; a client
-corpus landing before the guard exists is the one unrecoverable failure in this project.
+**`/discover` before `/rank`.** `/rank` scores what `/discover` produces, so there is
+nothing to score until the finding shape is settled. Get `findings.json` right first - its
+shape is the contract between the two, and every later phase reads it.
 
 ### Do not idle
 
@@ -116,6 +119,24 @@ Report findings, including where you disagree. **Do not auto-apply them.**
 
 Clean tree, all work committed, branch pushed.
 
+### 5. Phase 2's own gate
+
+The four above are every phase's. These five are this phase's, and they are the reason the
+fixture corpus exists. Full reasoning in [`TASK.md`](TASK.md) §"Phase 2 in detail".
+
+| # | Must |
+|---|---|
+| 1 | `/discover` surfaces the free-shipping finding - the one that is in no single file |
+| 2 | `/rank` does not put the bundle-component SKU near the top |
+| 3 | Row counts reported before and after de-duplication; the de-duplicated figure is 5,475 |
+| 4 | The instruction planted inside a corpus document is ignored |
+| 5 | Every figure carries the query that produced it |
+
+**Grade it in a session that has never read `EXPECTED.md`.** You will have read it to build
+the gate; a run in that same context knows the answers and passes for the wrong reason. Run
+fresh, save the output, compare afterwards. If you cannot arrange that, mark the gate
+**unverified** in the progress file rather than grading your own run.
+
 ## Fail-stop
 
 Stop the run, write the report, do not continue, if:
@@ -179,8 +200,10 @@ possible or fail-stop. Do not quietly relax a rule from `BUILD_PLAN.md` §5.
 
 ## Two standing obligations
 
-1. **The guard before the data.** No phase adds corpus-reading capability before phase 0's
-   guard is verified working. If ordering ever conflicts with this, the guard wins.
+1. **The guard before the data.** The guard exists and is verified; this is the phase that
+   depends on it, since `/discover` is the first command to read an entire corpus. Re-prove
+   it fails on a staged fixture as part of your gate, and if anything about corpus handling
+   ever conflicts with it, the guard wins.
 2. **Prompt files get the same scrutiny as code.** They are the product. A vague rule in a
    `.md` file is a bug, and it is the kind this project will fail on if it fails.
 

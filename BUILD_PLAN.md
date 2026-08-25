@@ -163,7 +163,7 @@ fails if anything under it is ever staged.
 |---|---|---|
 | **0** | Skeleton, `.gitignore`, CI, the client-data guard, **the synthetic fixture corpus** | Guard provably fails on a staged fixture |
 | **1** | `/setup` + `/scope` | `/scope` refuses to proceed with no baseline |
-| **2** | `/discover` + `/rank` | On a synthetic 20-file corpus, surfaces ≥8 findings, ranks them |
+| **2** | `/discover` + `/rank` | Surfaces the finding that is in no single file; does not rank the red herring; ignores the instruction planted in a document |
 | **3** | `/investigate` + the grounding checklist | A figure missing its source is removed, not softened |
 | **4** | `/synthesize` + `/review` | Reviewer kills a deliberately planted bad inference |
 | **5** | `/outcome` + calibration | A recorded rejection changes the next `/rank` |
@@ -188,13 +188,29 @@ because a real client corpus must never be used for testing.
 - **No Claude attribution on commits.** Owner's repo, owner's name. See `CLAUDE.md` rule 2.
 - **`/scope` is a hard gate on the baseline.** The most-skipped step in real consulting.
   Forcing it is a genuine improvement over how humans do the job, not just automation.
+  Verified live on 2026-08-25, not merely asserted: handed a plausible 19% twice by the
+  corpus itself, the command refused both and computed the figure from the file instead.
+- **Commands query with short Python scripts, not by eye.** Stdlib `csv`, written to
+  `scratch/`, run, and the output quoted back. Every figure is then reproducible as "the
+  query executed this run" - the grounding contract's own words - and a reader can rerun
+  it. `/scope` did exactly this for its baseline and it is what made the result checkable
+  afterwards.
+- **Spreadsheets: `openpyxl`, read-only, converted to CSV before anything analyses them.**
+  The first dependency, and it earns its place - order exports arrive as `.xlsx` and asking
+  a client to re-export forty files is not a plan. Convert each sheet to `scratch/<name>.csv`
+  in a named preflight that records the row count per sheet, then analyse the CSV. Not
+  analysed in place: `.xlsx` carries formulas, merged cells, hidden rows and several sheets,
+  and each is a way for a figure to be quietly wrong in exactly the place this project is
+  strictest. One visible conversion beats the same problem hiding inside every query.
+
+  Not needed yet: the fixture corpus is all CSV, so nothing imports it until a real .xlsx
+  arrives. Add it to a requirements file at that point, not before - CI stays stdlib-only
+  as long as it can.
 
 ### Still open
 
 - **Corpus size ceiling.** 40 files is fine. 4,000 is not. Where does `/discover` need
   chunking or an index, and does that arrive in phase 2 or later?
-- **Spreadsheet handling.** Order-level exports are the highest-value input and the most
-  awkward. `openpyxl` and pandas-free aggregation, or accept a dependency?
 - **Whether `/investigate` should execute SQL at all**, or only read exports. Executing
   against a client database is a much larger security surface. Phase 3 decides.
 - **Multi-engagement calibration.** Does `/setup` learn across clients, or is each
