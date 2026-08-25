@@ -16,10 +16,20 @@ is *tracked* (already committed on this branch, the CI case), and fails if:
    negation (`!pattern`) that is not on the reviewed allowlist. A negation
    re-includes what an earlier rule excluded, so a rule can be present and
    yet no longer take effect. Modelled on the reference repo's guard.
+4. any path *ever added* on any ref matches (1) or (2) - checks 1 and 2 see
+   only the files that exist now, and `git rm` removes a file from the tree
+   but never from history. A client P&L committed on Monday and deleted on
+   Tuesday stays readable in the repo forever, which is the single failure
+   this project calls unrecoverable.
 
-Honest limit: a client P&L pasted into `notes.txt` outside `engagements/`
-passes. The guard catches the shapes client data actually arrives in, not a
-determined author. Review of diffs is the real backstop.
+Check 4 needs full history. A shallow clone - `actions/checkout` defaults to
+`fetch-depth: 1` - would find nothing and pass without checking anything, so
+a shallow repository is a hard failure rather than a warning.
+
+Honest limits: a client P&L pasted into `notes.txt` outside `engagements/`
+passes. Merge commits are not diffed, so content introduced only by an evil
+merge is missed. The guard catches the shapes client data actually arrives
+in, not a determined author. Review of diffs is the real backstop.
 
 Stdlib only. Exit 0 on success, 1 with a list of failures.
 """
@@ -38,6 +48,25 @@ CLIENT_DIR = "engagements"
 # dropped at fixtures/ root must fail, not pass by virtue of the directory name.
 CORPUS_SUFFIXES = {".xlsx", ".xls", ".csv", ".pdf", ".pptx", ".docx"}
 FIXTURE_CORPORA = {"fixtures/acme-d2c"}
+
+# What to tell the author. The staged case is recoverable with one command; the
+# history case is not, and saying so is the point - a "just delete it" reflex is
+# exactly what leaves the blob reachable.
+STAGED_REMEDY = "Unstage it (`git restore --staged <path>`) and keep it on disk only."
+
+HISTORY_REMEDY = (
+    "It is in git history. Deleting the file does not remove it - the blob stays "
+    "reachable through the commit that added it. Removing it means rewriting history "
+    "(`git filter-repo`) and force-pushing every branch. Do it before the repo is "
+    "shared any further, and treat the data as disclosed if it was ever pushed."
+)
+
+SHALLOW_ERROR = (
+    "history: this is a shallow clone, so the history scan can see nothing and would "
+    "pass without checking anything. A gate that passes vacuously is worse than no "
+    "gate. Set `fetch-depth: 0` on the checkout step in .github/workflows/ci.yml, or "
+    "run `git fetch --unshallow` locally."
+)
 
 # .gitignore rules that must never disappear. Exact-line match.
 REQUIRED_IGNORE_RULES = [
@@ -66,8 +95,12 @@ def _components(path: str) -> list[str]:
     return [part.lower() for part in path.split("/") if part]
 
 
-def find_violations(paths: list[str]) -> list[str]:
-    """Return one message per offending path. Pure - no git, no filesystem."""
+def find_violations(paths: list[str], remedy: str = STAGED_REMEDY) -> list[str]:
+    """Return one message per offending path. Pure - no git, no filesystem.
+
+    `remedy` is the closing sentence of each message. It differs between the
+    staged case and the history case because the fix differs.
+    """
     violations: list[str] = []
     for path in sorted(set(paths)):
         parts = _components(path)
@@ -75,8 +108,7 @@ def find_violations(paths: list[str]) -> list[str]:
             continue
         if CLIENT_DIR in parts:
             violations.append(
-                f"{path}: under `{CLIENT_DIR}/` - client data never enters git. "
-                "Unstage it (`git restore --staged <path>`) and keep it on disk only."
+                f"{path}: under `{CLIENT_DIR}/` - client data never enters git. {remedy}"
             )
             continue
         suffix = Path(parts[-1]).suffix
@@ -86,7 +118,7 @@ def find_violations(paths: list[str]) -> list[str]:
                 f"{path}: `{suffix}` outside a known synthetic corpus "
                 f"({', '.join(sorted(FIXTURE_CORPORA))}) - corpus-shaped files are client "
                 "data unless they are fixtures. If it is fictional, add its corpus root to "
-                "FIXTURE_CORPORA in tools/check_no_client_data.py; otherwise unstage it."
+                f"FIXTURE_CORPORA in tools/check_no_client_data.py; otherwise: {remedy}"
             )
     return violations
 
@@ -143,20 +175,47 @@ def git_paths_to_check(root: Path) -> list[str]:
     return staged + tracked
 
 
+def is_shallow(root: Path) -> bool:
+    out = subprocess.run(
+        ["git", "rev-parse", "--is-shallow-repository"],
+        cwd=root, capture_output=True, check=True,
+    )
+    return out.stdout.decode("utf-8").strip() == "true"
+
+
+def git_history_paths(root: Path) -> list[str]:
+    # Every path ever added, on every ref. `--no-renames` so a file moved *into*
+    # `engagements/` is reported as an add at its new path; with rename detection
+    # git reports it as R and the path would slip through.
+    return _git_paths(
+        root, "log", "--all", "--diff-filter=A", "--no-renames",
+        "--name-only", "--pretty=format:",
+    )
+
+
 def main(argv: list[str]) -> int:
     root = Path(argv[1]).resolve() if len(argv) > 1 else DEFAULT_ROOT
     try:
         paths = git_paths_to_check(root)
+        shallow = is_shallow(root)
+        history = [] if shallow else git_history_paths(root)
     except (subprocess.CalledProcessError, OSError) as exc:
         print(f"check_no_client_data: cannot list git paths in {root}: {exc}")
         return 1
     errors = find_violations(paths) + check_gitignore(root)
+    if shallow:
+        errors.append(SHALLOW_ERROR)
+    else:
+        errors += find_violations(history, HISTORY_REMEDY)
     if errors:
         print(f"check_no_client_data: {len(errors)} failure(s) - client data must not enter git")
         for err in errors:
             print(f"  - {err}")
         return 1
-    print(f"check_no_client_data: OK ({len(paths)} staged+tracked paths, .gitignore rules intact)")
+    print(
+        f"check_no_client_data: OK ({len(paths)} staged+tracked paths, "
+        f"{len(set(history))} paths ever added across all refs, .gitignore rules intact)"
+    )
     return 0
 
 

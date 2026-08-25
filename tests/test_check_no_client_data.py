@@ -57,6 +57,14 @@ class FindViolationsTests(unittest.TestCase):
         (message,) = guard.find_violations(["engagements/acme/scope.md"])
         self.assertIn("engagements/acme/scope.md", message)
 
+    def test_history_remedy_says_rewrite_not_unstage(self):
+        # The staged advice is actively wrong for a path already in history:
+        # unstaging fixes nothing, and "just delete it" leaves the blob reachable.
+        (message,) = guard.find_violations(["engagements/acme/pnl.csv"], guard.HISTORY_REMEDY)
+        self.assertIn("history", message.lower())
+        self.assertIn("filter-repo", message)
+        self.assertNotIn("restore --staged", message)
+
 
 class GitignoreRulesTests(unittest.TestCase):
     def test_repo_gitignore_passes(self):
@@ -125,6 +133,44 @@ class EndToEndTests(unittest.TestCase):
         result = self.run_guard()
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         self.assertIn("'engagements/'", result.stdout)
+
+    def test_file_committed_then_deleted_is_still_caught_in_history(self):
+        # The scenario the history scan exists for: a client file committed in a
+        # hurry and removed an hour later. `git rm` clears the tree, never the
+        # history, so checks 1-3 see a clean repo and only check 4 can catch it.
+        target = self.root / "engagements" / "acme" / "pnl.csv"
+        target.parent.mkdir(parents=True)
+        target.write_text("month,revenue,ebitda\n2026-04,41200000,-3100000\n", encoding="utf-8")
+        self.git("add", "-f", "engagements/acme/pnl.csv")
+        self.git("commit", "-q", "-m", "wip")
+        self.git("rm", "-q", "engagements/acme/pnl.csv")
+        self.git("commit", "-q", "-m", "remove client data")
+
+        # Staged and tracked are both clean now - proving the scan is what fires.
+        self.assertEqual(guard.find_violations(guard.git_paths_to_check(self.root)), [])
+
+        result = self.run_guard()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("engagements/acme/pnl.csv", result.stdout)
+        self.assertIn("in git history", result.stdout)
+
+    def test_shallow_clone_fails_rather_than_passing_vacuously(self):
+        # `actions/checkout` clones with fetch-depth: 1 by default. A history scan
+        # there sees one commit and finds nothing, so it must refuse to run. This
+        # test is what stops someone dropping `fetch-depth: 0` from CI and leaving
+        # a guard that reports OK while checking nothing.
+        with tempfile.TemporaryDirectory() as tmp:
+            clone = Path(tmp) / "shallow"
+            subprocess.run(
+                ["git", "clone", "-q", "--depth", "1", self.root.as_uri(), str(clone)],
+                check=True, capture_output=True,
+            )
+            result = subprocess.run(
+                [sys.executable, str(GUARD), str(clone)], capture_output=True, text=True
+            )
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("shallow", result.stdout)
+        self.assertIn("fetch-depth: 0", result.stdout)
 
     def test_committed_corpus_file_outside_fixtures_fails(self):
         target = self.root / "export.xlsx"
