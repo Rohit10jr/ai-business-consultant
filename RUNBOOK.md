@@ -47,10 +47,11 @@ report and stop rather than burning the run.
    so you do not need to open that repo to start.
 3. Confirm `codex` is on PATH: `codex --version`. If it is not, you are on tier 3 for the
    whole run — say so in the progress file.
-4. Check the synthetic corpus exists (`fixtures/acme-d2c/`). **It will not — building it
-   is a phase 0 deliverable.** The spec is in `fixtures/README.md`, and
-   `docs/WORKED_EXAMPLE.md` is the expected-output document it must match. Phase 2 cannot
-   be gated without it.
+4. Check the synthetic corpus is intact (`fixtures/acme-d2c/`). Phase 0 built it and it
+   is tracked, so it should be there; `python -m unittest discover -s tests -t .` rebuilds
+   it and compares byte for byte. If that fails, stop and fix it before anything else —
+   every later gate is measured against it. Its planted answers are in
+   `fixtures/acme-d2c/EXPECTED.md`, which the commands themselves must never read.
 
 ## The loop
 

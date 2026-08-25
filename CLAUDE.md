@@ -10,7 +10,8 @@ It is **not** a chatbot, not a report generator, and not an autonomous agent. It
 of prompt-defined commands a human triggers, passing state through plain files on disk,
 with a hard stop before anything leaves the building.
 
-Nothing exists yet. This is a greenfield build from a proven pattern.
+Phases 0 and 1 are built, reviewed and merged. Phase 2 onward is a greenfield build
+from a proven pattern - see `TASK.md` for what is done and what is yours.
 
 ## Read these first
 
