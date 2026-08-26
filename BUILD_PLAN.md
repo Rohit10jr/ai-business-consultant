@@ -164,9 +164,9 @@ fails if anything under it is ever staged.
 | **0** | Skeleton, `.gitignore`, CI, the client-data guard, **the synthetic fixture corpus** | Guard provably fails on a staged fixture |
 | **1** | `/setup` + `/scope` | `/scope` refuses to proceed with no baseline |
 | **2** | `/discover` + `/rank` | Surfaces the finding that is in no single file; does not rank the red herring; ignores the instruction planted in a document |
-| **3** | `/investigate` + the grounding checklist | A figure missing its source is removed, not softened |
-| **4** | `/synthesize` + `/review` | Reviewer kills a deliberately planted bad inference |
-| **5** | `/outcome` + calibration | A recorded rejection changes the next `/rank` |
+| **3** | `/investigate` + the grounding checklist | A figure missing its source is removed, not softened; rate separated from mix, naming Supplier A's +3.04 pts |
+| **4** | `/synthesize` + `/review` | `/review` kills the planted bad inference in `fixtures/bad-investigation/`, naming the specific omission |
+| **5** | `/outcome` + calibration | A recorded rejection visibly moves the next `/rank` ordering |
 
 **Phase 0 builds the synthetic corpus** — a fictional D2C company with a margin problem,
 ~20 files, three findings planted at graded difficulty, one red herring, and one flaw
@@ -175,6 +175,37 @@ planted for `/review` to catch in phase 4. Full spec in `fixtures/README.md`;
 
 It is a phase 0 deliverable rather than phase 2 because every later gate depends on it, and
 because a real client corpus must never be used for testing.
+
+**Phase 4 needs a second fixture** — a deliberately bad investigation for `/review` to kill.
+Hand-written, so it lives at `fixtures/bad-investigation/` rather than inside the generated
+corpus, where the byte-identical rebuild test would reject it. Spec in that directory's
+README. Its design constraint is worth stating here: **every figure in it must be true and
+sourced.** If `/review` can kill it by finding a missing query, the gate has measured the
+grounding checker rather than adversarial reasoning, and phase 2 already proved the grounding
+checker works.
+
+### After phase 5
+
+Not committed to, and deliberately so — what comes next depends on what the owner sees in
+the first complete engagement. The candidates, in the order they look useful:
+
+- **A second corpus.** Everything is validated against one company we designed to contain the
+  answers we wanted found. "It works" currently means "it works on Acme". A structurally
+  different engagement — a B2B SaaS churn problem, a services utilisation problem — would
+  test whether the commands generalise. It would immediately stress two things:
+  `/discover`'s issue tree is margin-shaped, and `/rank`'s impact bands assume the baseline
+  is a percentage.
+- **Real-corpus hardening.** Acme is 12 files, 5,476 rows, all CSV. A real client sends 40
+  files of `.xlsx`, `.pdf` and forwarded mail. The corpus-size ceiling below is still open,
+  and the spreadsheet decision is settled but **never exercised** — the fixture has no
+  workbook in it.
+- **A handover artifact.** The output is JSON and markdown in a gitignored directory; a
+  consultant has to hand something over. Keep it narrow: render the *already-accepted*
+  recommendation with its sources, and never let it influence what the recommendation says.
+  "Not a report generator" is load-bearing.
+- **The practice view.** Once `tracker.csv` holds several engagements, which *kinds* of
+  finding get accepted or rejected, in which sectors. That is the payoff of phase 5's loop,
+  and it needs volume before it means anything.
 
 ## 8. Decisions
 
@@ -206,12 +237,21 @@ because a real client corpus must never be used for testing.
   Not needed yet: the fixture corpus is all CSV, so nothing imports it until a real .xlsx
   arrives. Add it to a requirements file at that point, not before - CI stays stdlib-only
   as long as it can.
+- **`/investigate` never executes SQL.** Exports only, read from `engagements/<client>/corpus/`.
+  Pointing the harness at a live client database is a large security surface - credentials to
+  hold, a connection to scope, queries that could lock or load a production system - for no
+  gain the corpus does not already provide. If a client can export it, the harness can read
+  it; if they cannot, that is a conversation for the human, not a capability for the tool.
+- **The practice learns across clients, through `tracker.csv` only.** `/outcome` records the
+  outcome; `/setup` reads that file and proposes changes to `frameworks.md`. Isolation would
+  be safer and would also remove the entire point of phase 5. The confidentiality line is
+  drawn at the crossing, not at the loop: `tracker.csv` is gitignored and may name clients;
+  `frameworks.md` is tracked and may not, so what `/setup` carries over is generalised to
+  sector, size band, engagement type, finding type and outcome. "A D2C apparel brand rejected
+  a channel-spend recommendation" crosses; "Acme rejected cutting Meta" does not.
 
 ### Still open
 
 - **Corpus size ceiling.** 40 files is fine. 4,000 is not. Where does `/discover` need
-  chunking or an index, and does that arrive in phase 2 or later?
-- **Whether `/investigate` should execute SQL at all**, or only read exports. Executing
-  against a client database is a much larger security surface. Phase 3 decides.
-- **Multi-engagement calibration.** Does `/setup` learn across clients, or is each
-  engagement isolated? Isolation is safer; learning is the point of the loop.
+  chunking or an index? Acme is 12 files and 5,476 rows, so nothing here has met the
+  problem yet; a real corpus is what answers it, not a decision made in advance.

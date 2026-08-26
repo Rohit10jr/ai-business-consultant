@@ -26,7 +26,7 @@ Start at [`TASK.md`](TASK.md) — it names your assignment and the reading order
 | `docs/REFERENCE_PATTERN.md` | The architecture lessons this copies, distilled |
 | `RUNBOOK.md` | The loop, the gate, fail-stop rules, progress format |
 | `AGENTS.md` | The reviewer's brief — read it so you know what you will be judged on |
-| `fixtures/README.md` | Spec for the synthetic corpus phase 0 must build |
+| `fixtures/README.md` | The synthetic corpus, and the flawed investigation `/review` must kill |
 
 ## The reference implementation
 

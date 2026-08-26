@@ -79,6 +79,17 @@ naive `/investigate` attributes the whole 4.2 points to quality when ~0.4 is mix
 5. **Obviously fake names.** "Acme", "Supplier A". Nothing that could be mistaken for a
    real company.
 
+## `bad-investigation/` — the fixture `/review` must kill
+
+Hand-written, not generated, which is why it sits outside `acme-d2c/`: the byte-identical
+rebuild test above compares every file in the generated corpus against a fresh build, and a
+hand-written file inside it would fail that check for no real reason.
+
+It exists because phase 4's gate — *"reviewer kills a deliberately planted bad inference"* —
+cannot be tested against a good investigation, and proves nothing if one context wrote both
+the flaw and the reviewer. Full spec, including the exact decomposition of the apparel
+return rise and what `/review` must name, is in `bad-investigation/README.md`.
+
 ## Adding more
 
 One corpus is enough for phases 0-5. A second one — different industry, different failure
