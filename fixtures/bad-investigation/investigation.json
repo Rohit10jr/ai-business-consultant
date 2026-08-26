@@ -1,0 +1,232 @@
+{
+  "client": "acme-review-test",
+  "scope_question": "Which customer, product or channel segments no longer cover their own variable cost, and which of them should Acme stop serving or serve differently?",
+  "baseline": "19.7% contribution margin, Q1 FY26 (Jan-Mar 2026, inclusive)",
+  "investigations": {
+    "return-rate-doubled": {
+      "finding": "return-rate-doubled",
+      "title": "Return rate doubled: 10.44% of lines in Q3 FY24 to 17.43% in Q2 FY26, driven by Apparel",
+      "investigated_on": "2026-08-26",
+      "reverified": [
+        {
+          "label": "all-lines return rate Q2 FY26",
+          "value": 17.43,
+          "unit": "%",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q03_decompose_category.py",
+          "query_text": "\"\"\"Decompose the all-lines return-rate change Q3 FY24 -> Q2 FY26 by category:\nrate effect per category at old shares, pure mix, interaction. Terms sum to the total.\"\"\"\nimport csv\nfrom collections import defaultdict\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\n\n\ndef stats(q):\n    n, ret = defaultdict(int), defaultdict(int)\n    for r in lines:\n        if month_of(r[\"order_date\"]) in q:\n            n[r[\"category\"]] += 1\n            ret[r[\"category\"]] += r[\"returned\"] == \"Y\"\n    total = sum(n.values())\n    return {c: (n[c] / total, ret[c] / n[c]) for c in n}, sum(ret.values()) / total, total\n\n\ns0, r0, n0 = stats(Q3_FY24)\ns1, r1, n1 = stats(Q2_FY26)\nprint(f\"all lines: {n0} -> {n1}; return rate {100*r0:.2f}% -> {100*r1:.2f}%, change {100*(r1-r0):+.2f} pts\")\ncats = sorted(set(s0) | set(s1))\ntotal_terms = 0.0\nfor c in cats:\n    sh0, rt0 = s0.get(c, (0, 0))\n    sh1, rt1 = s1.get(c, (0, 0))\n    eff = sh0 * (rt1 - rt0)\n    total_terms += eff\n    print(f\"  rate {c:12s} share {100*sh0:5.1f}% -> {100*sh1:5.1f}%  rate {100*rt0:5.1f}% -> {100*rt1:5.1f}%  {100*eff:+.2f} pts\")\nmix = sum((s1.get(c, (0, 0))[0] - s0.get(c, (0, 0))[0]) * s0.get(c, (0, 0))[1] for c in cats)\ninter = sum((s1.get(c, (0, 0))[0] - s0.get(c, (0, 0))[0]) * (s1.get(c, (0, 0))[1] - s0.get(c, (0, 0))[1]) for c in cats)\nprint(f\"  mix                    {100*mix:+.2f} pts\")\nprint(f\"  interaction            {100*inter:+.2f} pts\")\nprint(f\"  sum of terms           {100*(total_terms+mix+inter):+.2f} pts\")\n",
+          "rows_in": 5475,
+          "rows_out": 608,
+          "join": "none",
+          "recorded": 17.43,
+          "rederived": 17.43,
+          "match": true
+        },
+        {
+          "label": "apparel return rate Q2 FY26",
+          "value": 26.6,
+          "unit": "%",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/r01_apparel_return_rate.py",
+          "query_text": "\"\"\"Apparel return rate (excluding BND-001), Q3 FY24 and Q2 FY26, de-duplicated lines.\"\"\"\nimport csv\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}  # Jul-Sep 2024, inclusive\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}  # Apr-Jun 2026, inclusive\n\n\ndef month_of(d):\n    if \"/\" in d:  # March 2025 rows are DD/MM/YYYY\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nfor label, q in ((\"Q3 FY24\", Q3_FY24), (\"Q2 FY26\", Q2_FY26)):\n    sel = [r for r in apparel if month_of(r[\"order_date\"]) in q]\n    ret = sum(r[\"returned\"] == \"Y\" for r in sel)\n    print(f\"{label}: apparel lines {len(sel)}, returned {ret}, rate {100*ret/len(sel):.2f}%\")\n",
+          "rows_in": 5475,
+          "rows_out": 312,
+          "join": "none",
+          "recorded": 26.6,
+          "rederived": 26.6,
+          "match": true
+        }
+      ],
+      "claim": "Supplier B's product quality drove the apparel return rise: apparel returns went from 11.85% to 26.60% of lines (+14.75 pts) between Q3 FY24 and Q2 FY26 while Supplier B's own return rate went from 11.4% to 59.0%, so replacing Supplier B recovers the 14.75 pts.",
+      "claim_strength": "established",
+      "mechanism": "Supplier B's apparel is returned for sizing: 38 of its 46 Q2 FY26 returns cite sizing, against all 5 of its Q3 FY24 returns when its rate was 11.4%. The head of ops reports Supplier B changed its size block during 2025. Each returned line costs the pickup fee plus the write-down on unit cost that the P&L's return_handling line reconciles to, 431.88 rupees on average across Q2 FY26 apparel returns; at the Q2 FY26 run rate the rise of 14.75 pts is 46.0 excess returned lines a quarter, 19,880.79 rupees, or 2.94 pts of net revenue. Supplier B's share of apparel lines grew from 20.9% to 25.0% over the window, so its weight in the category is rising as well.",
+      "preregistered_in": "scratch/acme-review-test/investigate/return-rate-doubled/hypotheses.json",
+      "decompositions": [
+        {
+          "metric": "return rate, all product lines",
+          "components_by": "category",
+          "from": "Q3 FY24 (Jul-Sep 2024, inclusive)",
+          "to": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "start": 10.44,
+          "end": 17.43,
+          "total_change": 7.0,
+          "terms": [
+            {
+              "component": "Accessories",
+              "kind": "rate",
+              "share_start": 18.7,
+              "share_end": 18.9,
+              "rate_start": 6.5,
+              "rate_end": 1.7,
+              "points": -0.89
+            },
+            {
+              "component": "Apparel",
+              "kind": "rate",
+              "share_start": 58.5,
+              "share_end": 58.4,
+              "rate_start": 12.0,
+              "rate_end": 23.7,
+              "points": 6.8
+            },
+            {
+              "component": "Footwear",
+              "kind": "rate",
+              "share_start": 22.8,
+              "share_end": 22.7,
+              "rate_start": 9.6,
+              "rate_end": 14.5,
+              "points": 1.12
+            },
+            {
+              "component": "all",
+              "kind": "mix",
+              "points": -0.01
+            },
+            {
+              "component": "all",
+              "kind": "interaction",
+              "points": -0.03
+            }
+          ],
+          "sum_of_terms": 6.99,
+          "reconciles": true,
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q03_decompose_category.py",
+          "query_text": "\"\"\"Decompose the all-lines return-rate change Q3 FY24 -> Q2 FY26 by category:\nrate effect per category at old shares, pure mix, interaction. Terms sum to the total.\"\"\"\nimport csv\nfrom collections import defaultdict\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\n\n\ndef stats(q):\n    n, ret = defaultdict(int), defaultdict(int)\n    for r in lines:\n        if month_of(r[\"order_date\"]) in q:\n            n[r[\"category\"]] += 1\n            ret[r[\"category\"]] += r[\"returned\"] == \"Y\"\n    total = sum(n.values())\n    return {c: (n[c] / total, ret[c] / n[c]) for c in n}, sum(ret.values()) / total, total\n\n\ns0, r0, n0 = stats(Q3_FY24)\ns1, r1, n1 = stats(Q2_FY26)\nprint(f\"all lines: {n0} -> {n1}; return rate {100*r0:.2f}% -> {100*r1:.2f}%, change {100*(r1-r0):+.2f} pts\")\ncats = sorted(set(s0) | set(s1))\ntotal_terms = 0.0\nfor c in cats:\n    sh0, rt0 = s0.get(c, (0, 0))\n    sh1, rt1 = s1.get(c, (0, 0))\n    eff = sh0 * (rt1 - rt0)\n    total_terms += eff\n    print(f\"  rate {c:12s} share {100*sh0:5.1f}% -> {100*sh1:5.1f}%  rate {100*rt0:5.1f}% -> {100*rt1:5.1f}%  {100*eff:+.2f} pts\")\nmix = sum((s1.get(c, (0, 0))[0] - s0.get(c, (0, 0))[0]) * s0.get(c, (0, 0))[1] for c in cats)\ninter = sum((s1.get(c, (0, 0))[0] - s0.get(c, (0, 0))[0]) * (s1.get(c, (0, 0))[1] - s0.get(c, (0, 0))[1]) for c in cats)\nprint(f\"  mix                    {100*mix:+.2f} pts\")\nprint(f\"  interaction            {100*inter:+.2f} pts\")\nprint(f\"  sum of terms           {100*(total_terms+mix+inter):+.2f} pts\")\n",
+          "rows_in": 5475,
+          "rows_out": 1020
+        }
+      ],
+      "counter_hypotheses": [],
+      "allocation_dependence": "none — returned flag, line_value and sku are per line in orders/orders_export.csv; unit cost per sku in financials/cogs_by_sku.csv; net revenue per month in financials/pnl_monthly.csv. No shared cost is spread over lines.",
+      "allocation_pairs": [],
+      "evidence": [
+        {
+          "label": "apparel return rate Q3 FY24",
+          "value": 11.85,
+          "unit": "%",
+          "period": "Q3 FY24 (Jul-Sep 2024, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/r01_apparel_return_rate.py",
+          "query_text": "\"\"\"Apparel return rate (excluding BND-001), Q3 FY24 and Q2 FY26, de-duplicated lines.\"\"\"\nimport csv\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}  # Jul-Sep 2024, inclusive\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}  # Apr-Jun 2026, inclusive\n\n\ndef month_of(d):\n    if \"/\" in d:  # March 2025 rows are DD/MM/YYYY\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nfor label, q in ((\"Q3 FY24\", Q3_FY24), (\"Q2 FY26\", Q2_FY26)):\n    sel = [r for r in apparel if month_of(r[\"order_date\"]) in q]\n    ret = sum(r[\"returned\"] == \"Y\" for r in sel)\n    print(f\"{label}: apparel lines {len(sel)}, returned {ret}, rate {100*ret/len(sel):.2f}%\")\n",
+          "rows_in": 5475,
+          "rows_out": 211,
+          "join": "none"
+        },
+        {
+          "label": "apparel return rate Q2 FY26",
+          "value": 26.6,
+          "unit": "%",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/r01_apparel_return_rate.py",
+          "query_text": "\"\"\"Apparel return rate (excluding BND-001), Q3 FY24 and Q2 FY26, de-duplicated lines.\"\"\"\nimport csv\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}  # Jul-Sep 2024, inclusive\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}  # Apr-Jun 2026, inclusive\n\n\ndef month_of(d):\n    if \"/\" in d:  # March 2025 rows are DD/MM/YYYY\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nfor label, q in ((\"Q3 FY24\", Q3_FY24), (\"Q2 FY26\", Q2_FY26)):\n    sel = [r for r in apparel if month_of(r[\"order_date\"]) in q]\n    ret = sum(r[\"returned\"] == \"Y\" for r in sel)\n    print(f\"{label}: apparel lines {len(sel)}, returned {ret}, rate {100*ret/len(sel):.2f}%\")\n",
+          "rows_in": 5475,
+          "rows_out": 312,
+          "join": "none"
+        },
+        {
+          "label": "Supplier B return rate Q3 FY24",
+          "value": 11.4,
+          "unit": "%",
+          "period": "Q3 FY24 (Jul-Sep 2024, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q01_supplier_b.py",
+          "query_text": "\"\"\"Supplier B's share of apparel lines and its own return rate, Q3 FY24 and Q2 FY26.\"\"\"\nimport csv\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nfor label, q in ((\"Q3 FY24\", Q3_FY24), (\"Q2 FY26\", Q2_FY26)):\n    sel = [r for r in apparel if month_of(r[\"order_date\"]) in q]\n    b = [r for r in sel if r[\"supplier\"] == \"Supplier B\"]\n    b_ret = sum(r[\"returned\"] == \"Y\" for r in b)\n    print(f\"{label}: Supplier B share {100*len(b)/len(sel):.1f}% of {len(sel)} apparel lines; \"\n          f\"Supplier B return rate {100*b_ret/len(b):.1f}% ({b_ret}/{len(b)})\")\n    reasons = {}\n    for r in b:\n        if r[\"returned\"] == \"Y\":\n            reasons[r[\"return_reason\"]] = reasons.get(r[\"return_reason\"], 0) + 1\n    print(f\"  Supplier B return reasons: {reasons}\")\n",
+          "rows_in": 5475,
+          "rows_out": 44,
+          "join": "none"
+        },
+        {
+          "label": "Supplier B return rate Q2 FY26",
+          "value": 59.0,
+          "unit": "%",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q01_supplier_b.py",
+          "query_text": "\"\"\"Supplier B's share of apparel lines and its own return rate, Q3 FY24 and Q2 FY26.\"\"\"\nimport csv\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nfor label, q in ((\"Q3 FY24\", Q3_FY24), (\"Q2 FY26\", Q2_FY26)):\n    sel = [r for r in apparel if month_of(r[\"order_date\"]) in q]\n    b = [r for r in sel if r[\"supplier\"] == \"Supplier B\"]\n    b_ret = sum(r[\"returned\"] == \"Y\" for r in b)\n    print(f\"{label}: Supplier B share {100*len(b)/len(sel):.1f}% of {len(sel)} apparel lines; \"\n          f\"Supplier B return rate {100*b_ret/len(b):.1f}% ({b_ret}/{len(b)})\")\n    reasons = {}\n    for r in b:\n        if r[\"returned\"] == \"Y\":\n            reasons[r[\"return_reason\"]] = reasons.get(r[\"return_reason\"], 0) + 1\n    print(f\"  Supplier B return reasons: {reasons}\")\n",
+          "rows_in": 5475,
+          "rows_out": 78,
+          "join": "none"
+        },
+        {
+          "label": "Supplier B share of apparel lines Q3 FY24",
+          "value": 20.9,
+          "unit": "%",
+          "period": "Q3 FY24 (Jul-Sep 2024, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q01_supplier_b.py",
+          "query_text": "\"\"\"Supplier B's share of apparel lines and its own return rate, Q3 FY24 and Q2 FY26.\"\"\"\nimport csv\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nfor label, q in ((\"Q3 FY24\", Q3_FY24), (\"Q2 FY26\", Q2_FY26)):\n    sel = [r for r in apparel if month_of(r[\"order_date\"]) in q]\n    b = [r for r in sel if r[\"supplier\"] == \"Supplier B\"]\n    b_ret = sum(r[\"returned\"] == \"Y\" for r in b)\n    print(f\"{label}: Supplier B share {100*len(b)/len(sel):.1f}% of {len(sel)} apparel lines; \"\n          f\"Supplier B return rate {100*b_ret/len(b):.1f}% ({b_ret}/{len(b)})\")\n    reasons = {}\n    for r in b:\n        if r[\"returned\"] == \"Y\":\n            reasons[r[\"return_reason\"]] = reasons.get(r[\"return_reason\"], 0) + 1\n    print(f\"  Supplier B return reasons: {reasons}\")\n",
+          "rows_in": 5475,
+          "rows_out": 211,
+          "join": "none"
+        },
+        {
+          "label": "Supplier B share of apparel lines Q2 FY26",
+          "value": 25.0,
+          "unit": "%",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q01_supplier_b.py",
+          "query_text": "\"\"\"Supplier B's share of apparel lines and its own return rate, Q3 FY24 and Q2 FY26.\"\"\"\nimport csv\nfrom pathlib import Path\n\nORDERS = Path(\"engagements/acme-review-test/corpus/orders/orders_export.csv\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith ORDERS.open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nfor label, q in ((\"Q3 FY24\", Q3_FY24), (\"Q2 FY26\", Q2_FY26)):\n    sel = [r for r in apparel if month_of(r[\"order_date\"]) in q]\n    b = [r for r in sel if r[\"supplier\"] == \"Supplier B\"]\n    b_ret = sum(r[\"returned\"] == \"Y\" for r in b)\n    print(f\"{label}: Supplier B share {100*len(b)/len(sel):.1f}% of {len(sel)} apparel lines; \"\n          f\"Supplier B return rate {100*b_ret/len(b):.1f}% ({b_ret}/{len(b)})\")\n    reasons = {}\n    for r in b:\n        if r[\"returned\"] == \"Y\":\n            reasons[r[\"return_reason\"]] = reasons.get(r[\"return_reason\"], 0) + 1\n    print(f\"  Supplier B return reasons: {reasons}\")\n",
+          "rows_in": 5475,
+          "rows_out": 312,
+          "join": "none"
+        },
+        {
+          "label": "apparel return-rate rise Q3 FY24 to Q2 FY26",
+          "value": 14.75,
+          "unit": "pts",
+          "period": "Q3 FY24 (Jul-Sep 2024, inclusive) to Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q02_saving.py",
+          "query_text": "\"\"\"Rupee cost of the apparel return-rate rise at the Q2 FY26 run rate, and its size in\npoints of net revenue: excess returned lines x cost per returned line.\n\nCost per returned line follows the P&L definition: 150 pickup per returned order plus 40%\nof unit cost written down (return_handling reconciles to pnl_monthly.csv on that rule).\nUnit cost is the 2023 cost sheet; the P&L applies a small drift, so this is a floor.\n\"\"\"\nimport csv\nfrom pathlib import Path\n\nCORPUS = Path(\"engagements/acme-review-test/corpus\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith (CORPUS / \"orders\" / \"orders_export.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\nwith (CORPUS / \"financials\" / \"cogs_by_sku.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    cost = {r[\"sku\"]: float(r[\"unit_cost_2023\"]) for r in csv.DictReader(f)}\nprint(f\"cost sheet rows {len(cost)}; join orders->cost on sku: {len(lines)} lines in, \"\n      f\"{sum(r['sku'] in cost for r in lines)} matched\")\n\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nq3 = [r for r in apparel if month_of(r[\"order_date\"]) in Q3_FY24]\nq2 = [r for r in apparel if month_of(r[\"order_date\"]) in Q2_FY26]\nrate0 = sum(r[\"returned\"] == \"Y\" for r in q3) / len(q3)\nrate1 = sum(r[\"returned\"] == \"Y\" for r in q2) / len(q2)\nrise = rate1 - rate0\nexcess = rise * len(q2)\nreturned_q2 = [r for r in q2 if r[\"returned\"] == \"Y\"]\navg_cost = sum(150 + 0.4 * cost[r[\"sku\"]] * int(r[\"qty\"]) for r in returned_q2) / len(returned_q2)\nsaving = excess * avg_cost\nprint(f\"apparel return rate {100*rate0:.2f}% -> {100*rate1:.2f}%, rise {100*rise:.2f} pts\")\nprint(f\"Q2 FY26 apparel lines {len(q2)}; excess returned lines at the old rate: {excess:.1f}\")\nprint(f\"average cost per returned apparel line Q2 FY26: {avg_cost:.2f} rupees\")\nprint(f\"cost of the rise at Q2 FY26 run rate: {saving:,.2f} rupees per quarter\")\n\nwith (CORPUS / \"financials\" / \"pnl_monthly.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    pnl = {r[\"month\"]: r for r in csv.DictReader(f)}\nnet_q2 = sum(float(pnl[m][\"net_revenue\"]) for m in sorted(Q2_FY26))\nprint(f\"Q2 FY26 net revenue {net_q2:,.2f}; the rise costs {100*saving/net_q2:.2f} pts of net revenue\")\n",
+          "rows_in": 5475,
+          "rows_out": 312,
+          "join": "none"
+        },
+        {
+          "label": "excess returned apparel lines at the old rate, Q2 FY26",
+          "value": 46.0,
+          "unit": "lines per quarter",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q02_saving.py",
+          "query_text": "\"\"\"Rupee cost of the apparel return-rate rise at the Q2 FY26 run rate, and its size in\npoints of net revenue: excess returned lines x cost per returned line.\n\nCost per returned line follows the P&L definition: 150 pickup per returned order plus 40%\nof unit cost written down (return_handling reconciles to pnl_monthly.csv on that rule).\nUnit cost is the 2023 cost sheet; the P&L applies a small drift, so this is a floor.\n\"\"\"\nimport csv\nfrom pathlib import Path\n\nCORPUS = Path(\"engagements/acme-review-test/corpus\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith (CORPUS / \"orders\" / \"orders_export.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\nwith (CORPUS / \"financials\" / \"cogs_by_sku.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    cost = {r[\"sku\"]: float(r[\"unit_cost_2023\"]) for r in csv.DictReader(f)}\nprint(f\"cost sheet rows {len(cost)}; join orders->cost on sku: {len(lines)} lines in, \"\n      f\"{sum(r['sku'] in cost for r in lines)} matched\")\n\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nq3 = [r for r in apparel if month_of(r[\"order_date\"]) in Q3_FY24]\nq2 = [r for r in apparel if month_of(r[\"order_date\"]) in Q2_FY26]\nrate0 = sum(r[\"returned\"] == \"Y\" for r in q3) / len(q3)\nrate1 = sum(r[\"returned\"] == \"Y\" for r in q2) / len(q2)\nrise = rate1 - rate0\nexcess = rise * len(q2)\nreturned_q2 = [r for r in q2 if r[\"returned\"] == \"Y\"]\navg_cost = sum(150 + 0.4 * cost[r[\"sku\"]] * int(r[\"qty\"]) for r in returned_q2) / len(returned_q2)\nsaving = excess * avg_cost\nprint(f\"apparel return rate {100*rate0:.2f}% -> {100*rate1:.2f}%, rise {100*rise:.2f} pts\")\nprint(f\"Q2 FY26 apparel lines {len(q2)}; excess returned lines at the old rate: {excess:.1f}\")\nprint(f\"average cost per returned apparel line Q2 FY26: {avg_cost:.2f} rupees\")\nprint(f\"cost of the rise at Q2 FY26 run rate: {saving:,.2f} rupees per quarter\")\n\nwith (CORPUS / \"financials\" / \"pnl_monthly.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    pnl = {r[\"month\"]: r for r in csv.DictReader(f)}\nnet_q2 = sum(float(pnl[m][\"net_revenue\"]) for m in sorted(Q2_FY26))\nprint(f\"Q2 FY26 net revenue {net_q2:,.2f}; the rise costs {100*saving/net_q2:.2f} pts of net revenue\")\n",
+          "rows_in": 5475,
+          "rows_out": 312,
+          "join": "none"
+        },
+        {
+          "label": "average cost per returned apparel line Q2 FY26",
+          "value": 431.88,
+          "unit": "rupees",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q02_saving.py",
+          "query_text": "\"\"\"Rupee cost of the apparel return-rate rise at the Q2 FY26 run rate, and its size in\npoints of net revenue: excess returned lines x cost per returned line.\n\nCost per returned line follows the P&L definition: 150 pickup per returned order plus 40%\nof unit cost written down (return_handling reconciles to pnl_monthly.csv on that rule).\nUnit cost is the 2023 cost sheet; the P&L applies a small drift, so this is a floor.\n\"\"\"\nimport csv\nfrom pathlib import Path\n\nCORPUS = Path(\"engagements/acme-review-test/corpus\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith (CORPUS / \"orders\" / \"orders_export.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\nwith (CORPUS / \"financials\" / \"cogs_by_sku.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    cost = {r[\"sku\"]: float(r[\"unit_cost_2023\"]) for r in csv.DictReader(f)}\nprint(f\"cost sheet rows {len(cost)}; join orders->cost on sku: {len(lines)} lines in, \"\n      f\"{sum(r['sku'] in cost for r in lines)} matched\")\n\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nq3 = [r for r in apparel if month_of(r[\"order_date\"]) in Q3_FY24]\nq2 = [r for r in apparel if month_of(r[\"order_date\"]) in Q2_FY26]\nrate0 = sum(r[\"returned\"] == \"Y\" for r in q3) / len(q3)\nrate1 = sum(r[\"returned\"] == \"Y\" for r in q2) / len(q2)\nrise = rate1 - rate0\nexcess = rise * len(q2)\nreturned_q2 = [r for r in q2 if r[\"returned\"] == \"Y\"]\navg_cost = sum(150 + 0.4 * cost[r[\"sku\"]] * int(r[\"qty\"]) for r in returned_q2) / len(returned_q2)\nsaving = excess * avg_cost\nprint(f\"apparel return rate {100*rate0:.2f}% -> {100*rate1:.2f}%, rise {100*rise:.2f} pts\")\nprint(f\"Q2 FY26 apparel lines {len(q2)}; excess returned lines at the old rate: {excess:.1f}\")\nprint(f\"average cost per returned apparel line Q2 FY26: {avg_cost:.2f} rupees\")\nprint(f\"cost of the rise at Q2 FY26 run rate: {saving:,.2f} rupees per quarter\")\n\nwith (CORPUS / \"financials\" / \"pnl_monthly.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    pnl = {r[\"month\"]: r for r in csv.DictReader(f)}\nnet_q2 = sum(float(pnl[m][\"net_revenue\"]) for m in sorted(Q2_FY26))\nprint(f\"Q2 FY26 net revenue {net_q2:,.2f}; the rise costs {100*saving/net_q2:.2f} pts of net revenue\")\n",
+          "rows_in": 5475,
+          "rows_out": 83,
+          "join": "sku -> cogs_by_sku.csv (5475 in, 5475 matched)"
+        },
+        {
+          "label": "cost of the rise at Q2 FY26 run rate",
+          "value": 19880.79,
+          "unit": "rupees per quarter",
+          "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+          "query": "scratch/acme-review-test/investigate/return-rate-doubled/q02_saving.py",
+          "query_text": "\"\"\"Rupee cost of the apparel return-rate rise at the Q2 FY26 run rate, and its size in\npoints of net revenue: excess returned lines x cost per returned line.\n\nCost per returned line follows the P&L definition: 150 pickup per returned order plus 40%\nof unit cost written down (return_handling reconciles to pnl_monthly.csv on that rule).\nUnit cost is the 2023 cost sheet; the P&L applies a small drift, so this is a floor.\n\"\"\"\nimport csv\nfrom pathlib import Path\n\nCORPUS = Path(\"engagements/acme-review-test/corpus\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith (CORPUS / \"orders\" / \"orders_export.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\nwith (CORPUS / \"financials\" / \"cogs_by_sku.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    cost = {r[\"sku\"]: float(r[\"unit_cost_2023\"]) for r in csv.DictReader(f)}\nprint(f\"cost sheet rows {len(cost)}; join orders->cost on sku: {len(lines)} lines in, \"\n      f\"{sum(r['sku'] in cost for r in lines)} matched\")\n\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nq3 = [r for r in apparel if month_of(r[\"order_date\"]) in Q3_FY24]\nq2 = [r for r in apparel if month_of(r[\"order_date\"]) in Q2_FY26]\nrate0 = sum(r[\"returned\"] == \"Y\" for r in q3) / len(q3)\nrate1 = sum(r[\"returned\"] == \"Y\" for r in q2) / len(q2)\nrise = rate1 - rate0\nexcess = rise * len(q2)\nreturned_q2 = [r for r in q2 if r[\"returned\"] == \"Y\"]\navg_cost = sum(150 + 0.4 * cost[r[\"sku\"]] * int(r[\"qty\"]) for r in returned_q2) / len(returned_q2)\nsaving = excess * avg_cost\nprint(f\"apparel return rate {100*rate0:.2f}% -> {100*rate1:.2f}%, rise {100*rise:.2f} pts\")\nprint(f\"Q2 FY26 apparel lines {len(q2)}; excess returned lines at the old rate: {excess:.1f}\")\nprint(f\"average cost per returned apparel line Q2 FY26: {avg_cost:.2f} rupees\")\nprint(f\"cost of the rise at Q2 FY26 run rate: {saving:,.2f} rupees per quarter\")\n\nwith (CORPUS / \"financials\" / \"pnl_monthly.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    pnl = {r[\"month\"]: r for r in csv.DictReader(f)}\nnet_q2 = sum(float(pnl[m][\"net_revenue\"]) for m in sorted(Q2_FY26))\nprint(f\"Q2 FY26 net revenue {net_q2:,.2f}; the rise costs {100*saving/net_q2:.2f} pts of net revenue\")\n",
+          "rows_in": 5475,
+          "rows_out": 83,
+          "join": "sku -> cogs_by_sku.csv (5475 in, 5475 matched)"
+        }
+      ],
+      "recoverable_at_most": {
+        "label": "cost of the rise as points of net revenue",
+        "value": 2.94,
+        "unit": "pts of net revenue",
+        "period": "Q2 FY26 (Apr-Jun 2026, inclusive)",
+        "query": "scratch/acme-review-test/investigate/return-rate-doubled/q02_saving.py",
+        "query_text": "\"\"\"Rupee cost of the apparel return-rate rise at the Q2 FY26 run rate, and its size in\npoints of net revenue: excess returned lines x cost per returned line.\n\nCost per returned line follows the P&L definition: 150 pickup per returned order plus 40%\nof unit cost written down (return_handling reconciles to pnl_monthly.csv on that rule).\nUnit cost is the 2023 cost sheet; the P&L applies a small drift, so this is a floor.\n\"\"\"\nimport csv\nfrom pathlib import Path\n\nCORPUS = Path(\"engagements/acme-review-test/corpus\")\nQ3_FY24 = {\"2024-07\", \"2024-08\", \"2024-09\"}\nQ2_FY26 = {\"2026-04\", \"2026-05\", \"2026-06\"}\n\n\ndef month_of(d):\n    if \"/\" in d:\n        dd, mm, yy = d.split(\"/\")\n        return f\"{yy}-{mm}\"\n    return d[:7]\n\n\nwith (CORPUS / \"orders\" / \"orders_export.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    rows = list(csv.DictReader(f))\nseen, lines = set(), []\nfor r in rows:\n    k = (r[\"order_id\"], r[\"line_no\"])\n    if k not in seen:\n        seen.add(k)\n        lines.append(r)\nprint(f\"rows raw {len(rows)} -> deduplicated {len(lines)}\")\nwith (CORPUS / \"financials\" / \"cogs_by_sku.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    cost = {r[\"sku\"]: float(r[\"unit_cost_2023\"]) for r in csv.DictReader(f)}\nprint(f\"cost sheet rows {len(cost)}; join orders->cost on sku: {len(lines)} lines in, \"\n      f\"{sum(r['sku'] in cost for r in lines)} matched\")\n\napparel = [r for r in lines if r[\"category\"] == \"Apparel\" and r[\"sku\"] != \"BND-001\"]\nq3 = [r for r in apparel if month_of(r[\"order_date\"]) in Q3_FY24]\nq2 = [r for r in apparel if month_of(r[\"order_date\"]) in Q2_FY26]\nrate0 = sum(r[\"returned\"] == \"Y\" for r in q3) / len(q3)\nrate1 = sum(r[\"returned\"] == \"Y\" for r in q2) / len(q2)\nrise = rate1 - rate0\nexcess = rise * len(q2)\nreturned_q2 = [r for r in q2 if r[\"returned\"] == \"Y\"]\navg_cost = sum(150 + 0.4 * cost[r[\"sku\"]] * int(r[\"qty\"]) for r in returned_q2) / len(returned_q2)\nsaving = excess * avg_cost\nprint(f\"apparel return rate {100*rate0:.2f}% -> {100*rate1:.2f}%, rise {100*rise:.2f} pts\")\nprint(f\"Q2 FY26 apparel lines {len(q2)}; excess returned lines at the old rate: {excess:.1f}\")\nprint(f\"average cost per returned apparel line Q2 FY26: {avg_cost:.2f} rupees\")\nprint(f\"cost of the rise at Q2 FY26 run rate: {saving:,.2f} rupees per quarter\")\n\nwith (CORPUS / \"financials\" / \"pnl_monthly.csv\").open(encoding=\"utf-8\", newline=\"\") as f:\n    pnl = {r[\"month\"]: r for r in csv.DictReader(f)}\nnet_q2 = sum(float(pnl[m][\"net_revenue\"]) for m in sorted(Q2_FY26))\nprint(f\"Q2 FY26 net revenue {net_q2:,.2f}; the rise costs {100*saving/net_q2:.2f} pts of net revenue\")\n",
+        "rows_in": 5475,
+        "rows_out": 83,
+        "join": "sku -> cogs_by_sku.csv (5475 in, 5475 matched)"
+      },
+      "open_questions": [
+        "When exactly did Supplier B change its size block, and were size charts on the store updated with it?"
+      ],
+      "status": "investigated"
+    }
+  }
+}
