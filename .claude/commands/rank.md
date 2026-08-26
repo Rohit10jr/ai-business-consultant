@@ -50,12 +50,12 @@ nothing else. This rule applies to every step below and rides into every scoring
 Three vetoes, applied first, and a vetoed finding is **not scored**. It is listed separately
 with the reason so the human can see it was considered.
 
-1. **Out of scope.** A finding whose subject is on `scope.md`'s `out_of_scope` list is
-   vetoed regardless of size. "Pricing" on that list vetoes a finding about list prices,
+1. **Out of scope** (`out-of-scope`). A finding whose subject is on `scope.md`'s
+   `out_of_scope` list is vetoed regardless of size. "Pricing" on that list vetoes a finding about list prices,
    discount depth is a different subject and stays. When it is unclear whether an item
    matches, veto and say why — the client ruled it out, and a triage that re-admits it
    overrules the client.
-2. **Ungrounded.** A finding is vetoed if any figure it rests on lacks `query_text` and
+2. **Ungrounded** (`ungrounded`). A finding is vetoed if any figure it rests on lacks `query_text` and
    `rows_in`/`rows_out`, or any entry in its `checks` is false or missing. Such a finding
    is returned to `/discover` with the missing check named. **Do not score it lower to
    compensate; do not score it at all.** A confidence score of 20 on an unsourced figure
@@ -198,8 +198,24 @@ Add to each scored finding, and change nothing else in it:
 "rank_date": "YYYY-MM-DD", "status": "ranked"
 ```
 
-Add to each vetoed finding: `"rank_veto": "<reason>"`, `"rank_date"`, and
-`"status": "vetoed"`.
+Add to each vetoed finding, and nothing else:
+
+```
+"rank_veto": "out-of-scope | ungrounded | restates-the-baseline",
+"rank_veto_reason": "<one sentence, specific to this finding>",
+"rank_date": "YYYY-MM-DD", "status": "vetoed"
+```
+
+Two fields, because they do different jobs. `rank_veto` is the slug and must be exactly one
+of the three above, so a later command can filter on it. `rank_veto_reason` is the sentence
+a human reads, and it must name **the particular thing** rather than restate the rule: which
+`out_of_scope` item the subject matched, which check was missing and on which figure, or
+which metric is being restated and at what level of aggregation. *"Restates the baseline"*
+is the rule and is not a reason; *"its endpoint 19.72% is the figure `scope.md` records as
+the baseline, at the same whole-business aggregation"* is. Someone reading `findings.json`
+without knowing the rulebook should understand why this finding is not on the list.
+
+A vetoed finding gets no score and no other `rank_*` key.
 
 `rank_*` keys and `status` are the only keys `/rank` writes. `status` is the one key the
 two commands share by design: `/discover` sets `new`, `/rank` moves it to `ranked` or

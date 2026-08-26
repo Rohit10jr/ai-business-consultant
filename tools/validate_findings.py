@@ -25,6 +25,9 @@ Checks:
   own unit, or "not derivable" with a reason. `/rank` scores impact from this,
   and a finding that omits it silently ranks as if it were small
 - no rank_* keys unless `status` is `ranked` or `vetoed` (i.e. /rank wrote them)
+- a vetoed finding names a recognised veto slug *and* a human-readable reason,
+  and carries no score - the slug is for filtering, the sentence is for the
+  person reading the file without the rulebook to hand
 
 Exit 0 when clean, 1 with a list otherwise. Stdlib only.
 """
@@ -47,6 +50,9 @@ HEDGES = ("roughly", "approximately", "about ", "probably", "assumed", "estimate
 # The only three answers to "did you derive it a second way?". Anything else is a
 # sentence that reads like a check and is not one.
 SECOND_DERIVATION_START = ("agrees", "partial", "not possible")
+
+# /rank Step 1. The slug is filterable; the sentence beside it is what a human reads.
+VETO_SLUGS = ("out-of-scope", "ungrounded", "restates-the-baseline")
 
 
 def validate(data: dict) -> list[str]:
@@ -127,6 +133,25 @@ def validate(data: dict) -> list[str]:
                 errors.append(f"{where}: stated-only finding must say so in its title")
             if "not possible" not in str(checks.get("second_derivation", "")):
                 errors.append(f"{where}: stated-only finding cannot claim a second derivation")
+        if f["status"] == "vetoed":
+            slug = str(f.get("rank_veto", "")).strip()
+            if slug not in VETO_SLUGS:
+                errors.append(
+                    f"{where}: rank_veto {slug!r} is not one of {', '.join(VETO_SLUGS)}"
+                )
+            reason = str(f.get("rank_veto_reason", "")).strip()
+            if not reason:
+                errors.append(
+                    f"{where}: vetoed with no rank_veto_reason - the slug says which rule "
+                    "fired, not why this finding tripped it. Name the specific thing"
+                )
+            elif reason.strip(" .").lower().replace(" ", "-") in VETO_SLUGS:
+                errors.append(
+                    f"{where}: rank_veto_reason {reason!r} restates the rule instead of "
+                    "giving the reason. Name what this finding actually did"
+                )
+            if f.get("rank_score") is not None:
+                errors.append(f"{where}: vetoed findings are not scored, but rank_score is set")
         ranked = any(k.startswith("rank_") for k in f)
         if ranked and f["status"] not in ("ranked", "vetoed"):
             errors.append(f"{where}: has rank_* keys but status is {f['status']!r}")
