@@ -160,9 +160,161 @@ def validate(data: dict) -> list[str]:
     return errors
 
 
+# --- investigation.json ----------------------------------------------------
+# /investigate's output succeeds findings.json and is held to the same contract
+# plus the counter-hypothesis rule. Same file, same CLI: the two records are
+# told apart by their top-level key.
+
+REQUIRED_INVESTIGATION = {"finding", "title", "investigated_on", "reverified", "claim",
+                          "claim_strength", "mechanism", "decomposition", "counter_hypotheses",
+                          "allocation_pairs", "evidence", "recoverable_at_most",
+                          "open_questions", "status"}
+CLAIM_STRENGTHS = ("established", "partial", "unsupported")
+# Every investigation must have looked at these three shapes of alternative, plus
+# the cause it is arguing for. A class may only be absent with a stated reason.
+REQUIRED_CLASSES = ("mix", "common-cause", "measurement", "named")
+HYPOTHESIS_STATUSES = ("ruled_out", "supported", "not_ruled_out", "not_applicable")
+# Words that mean a kill query was not run.
+SOFT_STATUS_WORDS = ("unlikely", "probably", "considered", "seems")
+DECOMPOSITION_TOLERANCE = 0.011  # two-decimal rounding on each term
+
+
+def _figure_errors(fw: str, fig: dict) -> list[str]:
+    errors = []
+    miss = {"query", "query_text", "rows_in", "rows_out"} - set(fig)
+    if miss:
+        return [f"{fw}: missing keys {sorted(miss)}"]
+    if not str(fig["query_text"]).strip():
+        errors.append(f"{fw}: empty query_text - the figure has no shown query")
+    if not str(fig["query"]).replace("\\", "/").startswith("scratch/"):
+        errors.append(f"{fw}: query path must be under scratch/, got {fig['query']!r}")
+    for k in ("rows_in", "rows_out"):
+        if not isinstance(fig[k], int):
+            errors.append(f"{fw}: {k} must be an integer, got {fig[k]!r}")
+    return errors
+
+
+def validate_investigation(data: dict) -> list[str]:
+    errors: list[str] = []
+    missing = {"client", "scope_question", "baseline", "investigations"} - set(data)
+    if missing:
+        return [f"top level: missing keys {sorted(missing)}"]
+
+    for slug, inv in data["investigations"].items():
+        where = f"investigation {slug}"
+        miss = REQUIRED_INVESTIGATION - set(inv)
+        if miss:
+            errors.append(f"{where}: missing keys {sorted(miss)}")
+            continue
+        if inv["status"] == "blocked":
+            # A blocked entry records a figure that would not reproduce; it makes
+            # no claim, so the claim rules below do not apply to it.
+            if all(r.get("match") is True for r in inv["reverified"]):
+                errors.append(f"{where}: blocked, but every re-derived figure matched - blocked on what?")
+            continue
+        if inv["status"] != "investigated":
+            errors.append(f"{where}: status must be investigated or blocked, got {inv['status']!r}")
+
+        for i, r in enumerate(inv["reverified"]):
+            rw = f"{where} reverified[{i}]"
+            errors += _figure_errors(rw, r)
+            if r.get("match") is not True:
+                errors.append(f"{rw}: figure did not reproduce; an investigation cannot build on it")
+
+        if inv["claim_strength"] not in CLAIM_STRENGTHS:
+            errors.append(f"{where}: claim_strength must be one of {CLAIM_STRENGTHS}, got {inv['claim_strength']!r}")
+        if any(h in str(inv["recoverable_at_most"]).lower() for h in HEDGES):
+            errors.append(f"{where}: recoverable_at_most hedges - a ceiling is a figure or 'not derivable - <why>'")
+        rec = str(inv["recoverable_at_most"]).strip()
+        if rec.lower().startswith("not derivable") and not rec[13:].strip(" -—:"):
+            errors.append(f"{where}: recoverable_at_most says 'not derivable' with no reason")
+
+        hyps = inv["counter_hypotheses"]
+        if not hyps:
+            errors.append(f"{where}: counter_hypotheses is empty - an investigation with no alternatives is not one")
+        classes_seen = set()
+        open_alternative = False
+        for i, h in enumerate(hyps):
+            hw = f"{where} counter_hypotheses[{i}]"
+            cls, status = h.get("class"), h.get("status")
+            classes_seen.add(cls)
+            if status not in HYPOTHESIS_STATUSES:
+                errors.append(f"{hw}: status must be one of {HYPOTHESIS_STATUSES}, got {status!r}")
+                continue
+            for k in ("would_be_true_if", "killed_if"):
+                if not str(h.get(k, "")).strip() and status != "not_applicable":
+                    errors.append(f"{hw}: {k} is empty - the kill criterion is stated before the query is run")
+            if status in ("ruled_out", "supported"):
+                errors += _figure_errors(hw, h)
+                if not str(h.get("result", "")).strip():
+                    errors.append(f"{hw}: {status} with no result recorded")
+            if status == "supported" and not str(h.get("size", "")).strip():
+                errors.append(f"{hw}: supported alternative has no size - it must be nameable in the claim")
+            if status in ("not_ruled_out", "not_applicable") and not str(h.get("needs", "")).strip():
+                errors.append(f"{hw}: {status} must say what would decide it (needs)")
+            if status == "not_ruled_out":
+                open_alternative = True
+            note = " ".join(str(h.get(k, "")) for k in ("result", "needs", "hypothesis")).lower()
+            if status == "ruled_out" and any(w in note for w in SOFT_STATUS_WORDS):
+                errors.append(f"{hw}: ruled_out with a soft word ({SOFT_STATUS_WORDS}) - ruled out by a number, or not ruled out")
+        for cls in REQUIRED_CLASSES:
+            if cls not in classes_seen:
+                errors.append(f"{where}: no counter-hypothesis of class {cls!r} - each class needs a query or a not_applicable reason")
+        if inv["claim_strength"] == "established" and open_alternative:
+            errors.append(f"{where}: claim_strength is established but an alternative is not_ruled_out")
+
+        dec = inv["decomposition"]
+        if isinstance(dec, str):
+            if not dec.lower().startswith("n/a"):
+                errors.append(f"{where}: decomposition must be an object or 'n/a - <why>', got {dec!r}")
+        elif isinstance(dec, dict):
+            miss = {"metric", "components_by", "total_change", "terms", "sum_of_terms", "reconciles"} - set(dec)
+            if miss:
+                errors.append(f"{where}: decomposition missing keys {sorted(miss)}")
+            else:
+                errors += _figure_errors(f"{where} decomposition", dec)
+                kinds = [t.get("kind") for t in dec["terms"]]
+                if kinds.count("rate") < 2:
+                    errors.append(f"{where}: decomposition needs a rate term for every component (at least two); got {kinds.count('rate')}")
+                for k in ("mix", "interaction"):
+                    if k not in kinds:
+                        errors.append(f"{where}: decomposition has no {k} term")
+                for i, t in enumerate(dec["terms"]):
+                    if not isinstance(t.get("points"), (int, float)):
+                        errors.append(f"{where} decomposition terms[{i}]: points must be a number")
+                try:
+                    total = float(dec["total_change"])
+                    summed = sum(float(t["points"]) for t in dec["terms"])
+                    if abs(summed - total) > DECOMPOSITION_TOLERANCE or abs(float(dec["sum_of_terms"]) - summed) > DECOMPOSITION_TOLERANCE:
+                        errors.append(f"{where}: decomposition terms sum to {summed:.4f}, total_change is {total:.4f} - the components are not the whole denominator")
+                except (TypeError, ValueError, KeyError):
+                    errors.append(f"{where}: decomposition totals are not numbers")
+                if dec["reconciles"] is not True:
+                    errors.append(f"{where}: decomposition.reconciles is not true - not reported until it is")
+        else:
+            errors.append(f"{where}: decomposition must be an object or a string")
+
+        for i, p in enumerate(inv["allocation_pairs"]):
+            pw = f"{where} allocation_pairs[{i}]"
+            for half in ("allocation_free", "allocated"):
+                side = p.get(half)
+                if not isinstance(side, dict) or not isinstance(side.get("value"), (int, float)) or not str(side.get("query", "")).strip():
+                    errors.append(f"{pw}: {half} needs a numeric value and a query")
+            if not str((p.get("allocated") or {}).get("rule", "")).strip():
+                errors.append(f"{pw}: allocated figure has no rule - say how the shared cost was spread")
+            if p.get("conclusion_changes") is True and inv["claim_strength"] == "established":
+                errors.append(f"{where}: claim is established but an allocation pair changes the conclusion")
+
+        if not inv["evidence"]:
+            errors.append(f"{where}: no evidence figures")
+        for i, fig in enumerate(inv["evidence"]):
+            errors += _figure_errors(f"{where} evidence[{i}]", fig)
+    return errors
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
-        print("usage: validate_findings.py <findings.json>")
+        print("usage: validate_findings.py <findings.json | investigation.json>")
         return 2
     path = Path(argv[1])
     try:
@@ -170,14 +322,18 @@ def main(argv: list[str]) -> int:
     except (OSError, json.JSONDecodeError) as exc:
         print(f"{path}: unreadable or invalid JSON: {exc}")
         return 1
-    errors = validate(data)
+    if isinstance(data, dict) and "investigations" in data:
+        errors = validate_investigation(data)
+        label, n, what = "investigation", len(data["investigations"]), "every alternative carries its query and the decomposition reconciles"
+    else:
+        errors = validate(data)
+        label, n, what = "findings", len(data.get("findings", {})), "every figure carries its query and row counts"
     if errors:
         print(f"validate_findings: {len(errors)} problem(s) in {path}")
         for e in errors:
             print(f"  - {e}")
         return 1
-    n = len(data["findings"])
-    print(f"validate_findings: OK - {n} finding(s), every figure carries its query and row counts")
+    print(f"validate_findings: OK - {n} {label}(s), {what}")
     return 0
 
 
