@@ -111,11 +111,14 @@ query behind it is an opinion, and this review has no room for opinions.
 a. Re-derive every figure the claim rests on. Recorded value, your value, match or not.
 b. For every rate the investigation decomposed, decompose it yourself by EVERY field the
    corpus offers for that denominator — supplier, category, channel, courier, code,
-   whatever the export carries — not only the field the investigation chose. Rate effect
-   per component at old shares, pure mix, interaction, summing to the total. Then list
-   every component whose own rate effect is at least 10% of the total change and which the
-   investigation's claim, mechanism and decompositions do not name. Each one is a finding,
-   and the finding is its number.
+   whatever the export carries — not only the field the investigation chose. Start from
+   the export's header: run tools/preflight_csv.py on it and list every column. Each
+   column that could group the denominator gets a line in your `## Fields` table as
+   `decomposed` (with the query) or `skipped — <reason>` (numeric, an identifier, a free
+   text). Rate effect per component at old shares, pure mix, interaction, summing to the
+   total. Then list every component whose own rate effect is at least 10% of the total
+   change and which the investigation's claim, mechanism and decompositions do not name.
+   Each one is a finding, and the finding is its number.
 c. For every cause asserted, write down what else would produce the same numbers — mix,
    a common cause across components the story ignores, a measurement or booking change —
    and run the query that decides each. Say which the investigation ran, which it did not,
@@ -150,8 +153,10 @@ An empty array is a valid answer only if Part B's verdict is "survives".
 7. What would make it wrong
 Then a verdict per investigated cause: "killed" (the claim as written is false or the
 omission changes the recommendation), "wounded" (the claim survives smaller, and by how
-much), or "survives". One line each, with the number that decides it.
-End with "## Files read" listing every file you opened, and "## Queries run".
+much), or "survives". One line each, with the number that decides it and the query behind
+the number. A verdict without a query is not a verdict and will be discarded.
+Then "## Fields": one line per column of the denominator's export - decomposed (query) or
+skipped (reason). Then "## Files read" listing every file you opened, and "## Queries run".
 ```
 
 ## Step 3: Distrust the reviewer
@@ -161,7 +166,16 @@ The reviewer's findings are claims until you reproduce them. Before presenting:
 1. **Re-run every query the reviewer cites** that carries a number into a `kill` or
    `wound` — write it to `scratch/<client>/review/verify_<n>.py`, run it, compare. A
    finding whose number does not reproduce is presented as "not reproduced" with both
-   values, not as a finding.
+   values, not as a finding. **A `kill` or `wound` with no query behind it is not a
+   verdict**: it is moved to a "without a query" list at the end of Part B and the cause's
+   verdict is taken from the findings that do carry one. "Counter-hypotheses are empty" is
+   Part 0, already reported, and does not kill anything on its own.
+1b. **Check the reviewer's field table against the export.** Run
+   `python tools/preflight_csv.py` on the denominator's CSV and compare its column list
+   with the reviewer's `## Fields` table. Every column that could group the denominator —
+   every non-numeric, non-identifier column — must appear as `decomposed` or `skipped —
+   <reason>`. A column missing from the table means step 6b was not done: dispatch again,
+   naming the columns.
 2. Check the reviewer's "Files read" against the whitelist. Anything outside it — any
    `fixtures/` path in particular — invalidates the review: say so, discard it, and
    dispatch again with the boundary restated.

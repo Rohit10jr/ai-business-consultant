@@ -169,7 +169,9 @@ Rules the document is held to:
    `scratch/<client>/synthesize/draft.md` for the check, then to the engagement.)
 2. **No ceiling exceeds its investigation ceiling.** An option's number is the sum of its
    causes' `recoverable_at_most` and nothing more; no "plus second-order effects", no
-   "momentum".
+   "momentum". The checker holds every `- Ceiling:` line to exactly that: its figure must
+   be a `recoverable_at_most` value or an Arithmetic result whose every term is one. A
+   finding's magnitude is in the investigation too, and it is not a ceiling.
 3. **No cause is recommended on beyond its strength.** Established: recommend. Partial:
    "up to", alternative named. Unsupported: not an option.
 4. **Costs are not invented.** If the corpus holds no figure for what an action costs, the

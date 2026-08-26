@@ -300,6 +300,7 @@ class SynthesizeTests(unittest.TestCase):
     def test_ceilings_and_strengths_bound_the_recommendation(self):
         self.assertIn("**`recoverable_at_most` is a ceiling, and the only size a cause has.**", self.text)
         self.assertIn("**No ceiling exceeds its investigation ceiling.**", self.text)
+        self.assertIn("A\n   finding's magnitude is in the investigation too, and it is not a ceiling.", self.text)
         self.assertIn("**No cause is recommended on beyond its strength.**", self.text)
         self.assertIn("**Costs are not invented.**", self.text)
         self.assertIn("**Out of scope stays out.**", self.text)
@@ -341,6 +342,10 @@ class ReviewTests(unittest.TestCase):
     def test_reviewer_is_distrusted_and_nothing_is_applied(self):
         self.assertIn("## Step 3: Distrust the reviewer", self.text)
         self.assertIn("**Re-run every query the reviewer cites**", self.text)
+        # Review findings: a query-less kill is not a verdict; every field is tabled.
+        self.assertIn("**A `kill` or `wound` with no query behind it is not a\n   verdict**", self.text)
+        self.assertIn("**Check the reviewer's field table against the export.**", self.text)
+        self.assertIn("## Fields", self.text)
         self.assertIn("**Do not apply any edit.**", self.text)
         self.assertIn("**Nothing is applied.**", self.text)
         self.assertRegex(self.text, r"`/review` writes nothing under\s+`engagements/`")
