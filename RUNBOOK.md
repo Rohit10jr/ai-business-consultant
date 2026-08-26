@@ -57,7 +57,11 @@ the one most likely to be quietly skipped, and it is the phase that makes the lo
 
 ## Before you begin
 
-1. `git status` is clean, and you are on the right branch cut from the right parent.
+1. **Sync before you read anything.** `git fetch origin`, then check
+   `git log --oneline -1 origin/main` and confirm your branch is cut from that commit.
+   The brief you work from - `TASK.md`, this file, `fixtures/` - lives on `main`, so a
+   checkout made before the last merge means reading a stale brief and reporting files as
+   missing when they are only unfetched. Then confirm `git status` is clean.
 2. Read `docs/REFERENCE_PATTERN.md` if you have not this session. Ten minutes, and it
    prevents re-deriving decisions already made.
 3. Confirm `codex` is on PATH: `codex --version`. If not, you are on tier 3 for the whole
@@ -222,6 +226,12 @@ disagreement usually means one of the two is wrong.
 **When something looks impossible**, it usually means a constraint is being read too
 strictly. Write down which constraint and why, then either find the reading that makes it
 possible or fail-stop. Do not quietly relax a rule from `BUILD_PLAN.md` §5.
+
+**When one observation contradicts a later one**, reconcile them before reporting, and
+report only the conclusion. A file that looks missing and then turns out to be present
+almost always means the first look predated a fetch - not that the repo is inconsistent.
+Reporting both and leaving the reader to work out which is true wastes the human turn the
+report exists to save.
 
 **When two runs of the same command disagree**, that is a finding about the command, not
 noise to average away. It has already happened once: two `/discover` runs put the same
