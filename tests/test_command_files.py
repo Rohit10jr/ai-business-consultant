@@ -175,6 +175,12 @@ class RankTests(unittest.TestCase):
         self.assertIn("The test is aggregation, not wording", self.text)
         self.assertIn("Do not score it low instead", self.text)
 
+    def test_veto_records_a_slug_and_a_human_reason(self):
+        self.assertIn("rank_veto_reason", self.text)
+        self.assertIn("is the rule and is not a reason", self.text)
+        for slug in ("out-of-scope", "ungrounded", "restates-the-baseline"):
+            self.assertIn(slug, self.text)
+
     def test_impact_is_read_not_reconstructed(self):
         self.assertIn("magnitude.baseline_metric", self.text)
         self.assertIn("do not attempt the conversion yourself", self.text)

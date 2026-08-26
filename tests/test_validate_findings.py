@@ -141,5 +141,41 @@ class BaselineMetricTests(unittest.TestCase):
         self.assertEqual(v.validate(d), [])
 
 
+
+class VetoRecordTests(unittest.TestCase):
+    """A veto has to survive a reader who does not know the rulebook."""
+
+    def vetoed(self, **overrides):
+        d = good()
+        f = d["findings"]["apparel-returns"]
+        f["status"] = "vetoed"
+        f["rank_veto"] = "restates-the-baseline"
+        f["rank_veto_reason"] = ("its endpoint 19.72% is the figure scope.md records as the "
+                                 "baseline, at the same whole-business aggregation")
+        f["rank_date"] = "2026-08-26"
+        f.update(overrides)
+        return d
+
+    def test_slug_plus_sentence_passes(self):
+        self.assertEqual(v.validate(self.vetoed()), [])
+
+    def test_missing_reason_fails(self):
+        errors = v.validate(self.vetoed(rank_veto_reason=""))
+        self.assertTrue(any("no rank_veto_reason" in e for e in errors), errors)
+
+    def test_reason_that_only_restates_the_rule_fails(self):
+        # The exact shape observed in the first live run: the slug in both fields.
+        errors = v.validate(self.vetoed(rank_veto_reason="restates the baseline"))
+        self.assertTrue(any("restates the rule" in e for e in errors), errors)
+
+    def test_unrecognised_slug_fails(self):
+        errors = v.validate(self.vetoed(rank_veto="looked-unimportant"))
+        self.assertTrue(any("is not one of" in e for e in errors), errors)
+
+    def test_vetoed_finding_may_not_carry_a_score(self):
+        errors = v.validate(self.vetoed(rank_score=76))
+        self.assertTrue(any("not scored" in e for e in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main()
