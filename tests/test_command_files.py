@@ -332,6 +332,10 @@ class ReviewTests(unittest.TestCase):
         self.assertIn("### Part B — findings, by category", self.text)
         for verdict in ('"killed"', '"wounded"', '"survives"'):
             self.assertIn(verdict, self.text)
+        # The verdict is on the claim as written: an overstated attribution is killed,
+        # not "wounded" because a smaller claim would survive.
+        self.assertIn("on the claim AS WRITTEN", self.text)
+        self.assertIn('A claim that "recovers 14.75 points"\n  when its cause\'s own effect is 9.93 is killed', self.text)
 
     def test_a_finding_is_a_number_and_every_field_is_decomposed(self):
         self.assertIn("**A finding is a number.**", self.text)

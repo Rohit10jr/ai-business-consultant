@@ -151,10 +151,18 @@ An empty array is a valid answer only if Part B's verdict is "survives".
 5. Figures that do not reproduce
 6. Scope — anything on out_of_scope that crept in
 7. What would make it wrong
-Then a verdict per investigated cause: "killed" (the claim as written is false or the
-omission changes the recommendation), "wounded" (the claim survives smaller, and by how
-much), or "survives". One line each, with the number that decides it and the query behind
-the number. A verdict without a query is not a verdict and will be discarded.
+Then a verdict per investigated cause, on the claim AS WRITTEN:
+- "killed" — a figure the claim rests on is wrong, or the claim attributes to its cause
+  more than the cause's own component accounts for (an omitted component, an interaction
+  folded in, a ceiling sized on the whole change). A claim that "recovers 14.75 points"
+  when its cause's own effect is 9.93 is killed, however real the 9.93 is; the smaller
+  claim that survives is a different claim, and you say what it is.
+- "wounded" — every figure in the claim holds and the attribution is right, but its
+  strength must drop: an alternative the case did not test is open, or an allocation
+  changes the sign.
+- "survives" — you tried and could not move it.
+One line each, with the number that decides it and the query behind the number. A verdict
+without a query is not a verdict and will be discarded.
 Then "## Fields": one line per column of the denominator's export - decomposed (query) or
 skipped (reason). Then "## Files read" listing every file you opened, and "## Queries run".
 ```
