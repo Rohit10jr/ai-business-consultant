@@ -19,7 +19,7 @@ Baseline for `/scope` is the Q2 FY26 figure.
 
 | # | Difficulty | Finding | Where it lives |
 |---|---|---|---|
-| 1 | Easy | Meta CAC ₹345 → ₹688 (Q3 FY24 → Q2 FY26) | Stated outright in `interviews/cfo.md`. Derivable: `marketing/spend_by_channel.csv` Meta spend ÷ first-order customers with `channel=Meta` in `orders/orders_export.csv` |
+| 1 | Easy | Meta CAC ₹334 → ₹675 (Q3 FY24 → Q2 FY26) | Stated outright in `interviews/cfo.md` (as ₹340 → ₹710 — the client rounds). Derived here from the export as published: `marketing/spend_by_channel.csv` Meta spend ÷ customers whose **earliest** order falls in the quarter with `channel=Meta`, over de-duplicated rows with dates normalised, **excluding the ~2% of lines with a blank `customer_id`** — those cannot be attributed to a customer |
 | 2 | Medium | Apparel return rate 11.8% → 26.6% | One aggregation over `orders/orders_export.csv`: `returned=Y` share by `category=Apparel` (excluding `BND-001`) by quarter |
 | 3 | **Hard** | Free-shipping threshold ₹999 unchanged since launch while courier base rates rose 22%; 73% of Q2 FY26 orders ship free | In no single file. Needs `ops/courier_invoices.csv` (rate card by month) joined to order values and `shipping_charged` in the export. The threshold itself appears only in `ops/sku_catalogue.md` and `interviews/marketing_lead.md` |
 | 4 | Medium | Discount codes stacking on 8.1% of orders since Jan 2025 (was 0.0%) | `discount_codes` with a `|` in the export. The cause (new checkout app) is a passing remark in `interviews/marketing_lead.md` |
