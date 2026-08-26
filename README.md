@@ -7,9 +7,11 @@ baseline, read the client's own document corpus, surface candidate findings they
 know were there, rank them, build the case on the top few, have a second agent attack it,
 and record what the client actually accepted.
 
-**Status: phases 0 and 1 are on `main`.** The client-data guard and CI, the synthetic
-test corpus, and the `/setup` and `/scope` command files. Phase 2 - `/discover` and
-`/rank` - is next; the assignment is in [`TASK.md`](TASK.md).
+**Status: phases 0, 1 and 2 are on `main`,** verified by live runs rather than by reading the
+command files. The client-data guard and CI, the synthetic corpus, and four working commands:
+`/setup`, `/scope`, `/discover`, `/rank`. Phases 3-5 - `/investigate`, `/synthesize`,
+`/review`, `/outcome` - are next, and finish the pipeline; the assignment is in
+[`TASK.md`](TASK.md).
 
 > **Agents start at [`TASK.md`](TASK.md).**
 
@@ -66,6 +68,7 @@ any real corpus exists, and CI fails if anything under it is ever staged.
 | [`docs/CONSULTING_METHOD.md`](docs/CONSULTING_METHOD.md) | The domain — what consultants do, as an algorithm |
 | [`docs/REFERENCE_PATTERN.md`](docs/REFERENCE_PATTERN.md) | The architecture lessons this copies, distilled |
 | [`fixtures/README.md`](fixtures/README.md) | Spec for the synthetic test corpus |
+| [`fixtures/bad-investigation/README.md`](fixtures/bad-investigation/README.md) | The deliberately flawed investigation `/review` must kill |
 
 ## Prior art
 
