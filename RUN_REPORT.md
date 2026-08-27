@@ -361,3 +361,64 @@ figure and decomposed every rate by all eighteen export columns. No cause was ki
 Every figure above traces to a query executed in the run that produced it, recorded in
 `engagements/acme/{findings,investigation}.json` and `recommendation.md` with the script
 text embedded.
+
+---
+
+# Run report — phase 6, run of 2026-08-27
+
+Appended below the phase 0–5 reports and the engagement, which stand as written. Branch
+`phase-6-fixes`, cut from `main` at `cc15458`. Nothing merged to `main`. **Nothing was run
+against Acme and no subagent was spawned** — the brief forbade it, and every runtime gate is
+recorded `unverified` with the run that would verify it, for phase 7.
+
+## Status at a glance
+
+| Phase | Branch | State | Gate |
+|---|---|---|---|
+| 6 | `phase-6-fixes` | **PASS (runtime gates unverified by design)** | 186 tests · guard re-proved · tier-1 Codex review, 8 findings (1 blocker) applied · fix 1 5/5 and fix 2 5/5 on checkable items · 8 runtime items handed to phase 7 · 5 commits pushed |
+
+## What shipped
+
+**Fix 1.** The ceiling was rupees divided by the baseline's frozen denominator, and `/review`
+had shown it overstated the margin movement by a third. `recoverable_at_most` is now rupees
+only; `baseline_movement_at_most` is the baseline recomputed with the fix applied, both terms
+before and after, from a query that prints both. Options are sized in rupees and their
+movement rebuilt jointly in one division — never the sum of two movements, which overstates
+again the same way. Validator and checker refuse every form of the old error; the command
+file walks Acme's Supplier B numbers by hand to +5.02 pts, the figure the reviewer derived.
+
+**Fix 2.** The calibration gate was rewritten first — the loop passes when its mechanism is
+shown within one run, not when one rejection forces a swing — and committed before the
+formula. Then the rule: `25 × (a − r) / (n + 2)`, capped at +10. One rejection is −8 rather
+than −25; the full weight is a limit reached with evidence. The tracked profile carries the
+formula, the argument, the n-table and the band-crossing answer, and a test reads the
+formula from the file and holds the tables to it.
+
+## What the gate showed
+
+Ten checkable items, ten passed, all by unit test on hand-written inputs or by reading:
+the frozen-denominator ceiling refused, the sum of two movements refused, the hand-worked
+example reaching +5.02, the gate commit preceding the rule commit, the n-table matching
+the file's own formula. The seven runtime items are in `PROGRESS_PHASE_6.md` with the exact
+run and pass condition for each.
+
+## What did not work, honestly
+
+- **Acme's `investigation.json` now fails the validator**, on shape: it has no movement
+  figure and a points unit on its ceiling. That is the old rule's record, left as it is on
+  purpose; `/synthesize` and `/review` will refuse it until phase 7 regenerates it.
+- **I first recomputed the live calibration rows by hand** (+8 / −8) with a note. The
+  reviewer called it what it was — a hand edit to a file `/setup` alone writes — and the
+  rows are now cleared to the placeholder, with the regeneration listed for phase 7.
+- **The checker's first version accepted the very bug it was written against**: any
+  division counted as a recomputed ratio, so `7.30 = 100 × 46,121.67 / 631,425.85` passed
+  as a movement. Caught by the reviewer, not by me; a ratio must now be rebuilt from both
+  of the baseline's own terms, and points of the baseline are policed in prose too.
+- **Overlap between causes is now measured, not assumed**: with two or more causes,
+  `/investigate` records a `shared_rows` count per pair by query, and `/synthesize` combines
+  only pairs at zero. Unverified until phase 7 runs it (U8).
+
+## What the next runbook should cover
+
+1. **Phase 7: the cold run**, U1 → U8, in a session that did not make these fixes.
+2. **A second corpus**, still — everything above is validated on one company.
