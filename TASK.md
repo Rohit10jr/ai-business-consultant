@@ -177,6 +177,32 @@ tests the mechanism rather than forcing a swing. It must require:
 - Whether a single row may move a finding across a verdict band (`pursue` → `consider`) is
   **stated either way with its reasoning**. Both answers are defensible. Silence is not.
 
+### The gate, as rewritten (phase 6 — committed before the formula changed)
+
+The calibration loop passes when **the mechanism is shown, not when a swing is forced**:
+
+1. **Measurable within one run.** `/rank` records `rank_score_uncalibrated` beside
+   `rank_score` and prints "Calibration moved: …" from the same agents and the same raw
+   scores — every difference between the two orderings is the calibration's effect and
+   nothing else. A comparison across two runs proves nothing, because fresh scoring agents
+   move raw scores by ±1–3 on their own.
+2. **A recorded, argued strength.** `practice/frameworks.md` carries the formula, and
+   beside it what one row does, what five rows do, and why that is the right trade for a
+   practice that has just started. The strength is a decision in a tracked file, never a
+   number a command chose.
+3. **The curve, not a point.** The same file tabulates the adjustment at n = 1, 2, 5 and a
+   mixed case, so a reader sees how fast the practice learns and where it stops.
+4. **Band-crossing answered either way.** Whether a single row may move a finding across
+   a verdict band is stated, with the reasoning. Both answers are defensible; silence is
+   not.
+5. **The mechanics unchanged.** `/setup` reads the rule from the file and never from
+   memory; `/outcome` writes only `tracker.csv`; nothing client-identifying crosses.
+
+It does **not** require that one rejection reorder the next ranking. If one row moves a
+finding across a band under the recorded rule, that is the rule's stated behaviour; if it
+does not, the loop has still closed — the adjustment is recorded, visible, and will grow
+with evidence. Whether the order moved is reported, not demanded.
+
 ### The rule
 
 Then change the formula, or argue in writing that it should stand. Shapes worth considering,
