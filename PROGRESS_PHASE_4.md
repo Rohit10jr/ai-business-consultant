@@ -1,4 +1,4 @@
-# Phase 4 — <STATUS>   [branch: phase-4-synthesize]
+# Phase 4 — PASS   [branch: phase-4-synthesize]
 
 ## What shipped
 - `.claude/commands/synthesize.md`: `/synthesize <client>` — refuses an `investigation.json` the validator rejects; tabulates every established/partial cause with its ceiling; builds two or three options that trade different things (one of them do-less), each sized as the written-out sum of its causes' `recoverable_at_most` and nothing more; a `partial` cause is "up to" with its alternative named, an `unsupported` cause is not an option; costs are never invented; out-of-scope levers never appear; a per-stakeholder section addresses each interviewee's stated concern with no new figures; an Evidence table and an Arithmetic section close the document. Runs no queries: `tools/check_recommendation.py` is run on the draft and a figure it lists is removed, not softened. Single writer of `recommendation.md`.
