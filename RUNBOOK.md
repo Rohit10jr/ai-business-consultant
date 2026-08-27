@@ -50,12 +50,14 @@ If a phase is blocked, do not wait. Move to the next thing that is not blocked a
 the block. If everything is blocked, that is a fail-stop — write the report and stop rather
 than burning the run.
 
-### This is smaller than phases 3-5
+### Smaller than phases 3-5, and deliberately cheap
 
-Two command edits, a checker rule, a formula, and their tests. The expensive part is
-re-running `/investigate` and `/synthesize` on Acme to regenerate the artifacts, and `TASK.md`
-gives you an explicit cheaper alternative if the budget will not carry it. Spend the budget
-on getting fix 1's number right, not on polish.
+Two command edits, a checker rule, a formula, and their tests. **No subagents, and no command
+run against Acme** — the owner's budget is committed elsewhere, and phases 3-5 spent theirs on
+exactly those runs. Unit tests on hand-written inputs carry this phase.
+
+Every runtime gate is recorded `unverified` on purpose. Phase 7 verifies them from a cold run,
+and `PROGRESS_PHASE_6.md` hands it the list.
 
 ## Before you begin
 
@@ -148,8 +150,8 @@ Full reasoning in `TASK.md`. In short:
 | 1 | `recoverable_at_most` carries a currency unit only; baseline points come only from `baseline_movement_at_most` |
 | 2 | The movement query's output shows numerator **and** denominator moving |
 | 3 | `check_recommendation.py` rejects baseline-unit ceilings not sourced from a movement figure, and rejects an option whose movement is the sum of its causes' |
-| 4 | Re-running `/investigate` on Acme's Supplier B cause reproduces **≈+5.02 pts** — the figure `/review` found independently |
-| 5 | Tests cover the single-cause and the combined-option cases |
+| 4 | Tests cover the single-cause and the combined-option cases, on hand-written inputs |
+| 5 | A worked example in the command file reaches **≈+5.02 pts** by hand on Acme's Supplier B numbers — the figure `/review` derived independently. Live re-derivation is deferred to phase 7 and recorded `unverified` |
 
 **Fix 2 — the calibration gate, then the rule**
 

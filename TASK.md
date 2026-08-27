@@ -24,9 +24,24 @@ each gate showed.
 | **1** | The ceiling denominator | Every ceiling in the deliverable is wrong by roughly a third, and `/review` already proved it |
 | **2** | The calibration gate, then the calibration rule | The rule is blunt because the gate demanded it. Fix the gate first |
 
-**Do not run the full pipeline.** That is phase 7, and it must be a different session — one
-that did not make these fixes. Whoever fixes the harness cannot credibly demonstrate it,
-for the same reason the phase 2-5 gates were graded by fresh subagents.
+### Make the changes. Run nothing.
+
+**This phase spawns no subagents and runs no command against Acme.** Not `/investigate`, not
+`/synthesize`, not `/rank` — not once, not "just to check". The owner's session budget is
+committed elsewhere, and phases 3-5 spent most of theirs on exactly these runs: 20-30 minutes
+and 150-300k tokens each, five of which hit session limits.
+
+What you deliver is the changed commands, the changed checker, and tests that prove the new
+rules on inputs you construct yourself. Unit tests are cheap and local; live runs are not.
+
+**Every runtime gate below is therefore deliberately `unverified`,** and saying so is the
+correct outcome — not a shortfall. It is the same discipline as phase 1, which recorded an
+unverified gate honestly and was right to.
+
+**Do not run the full pipeline either.** That is phase 7, and it must be a different session
+— one that did not make these fixes. Whoever fixes the harness cannot credibly demonstrate
+it, which is why every gate in this repo has been graded by a context that did not build the
+thing.
 
 ---
 
@@ -95,25 +110,32 @@ movement figures.
 
 ### Gate
 
+**Checkable now, without running anything:**
+
 | # | Must |
 |---|---|
 | 1 | `recoverable_at_most` carries a currency unit only; no ceiling is expressed in baseline points except via `baseline_movement_at_most` |
-| 2 | The movement query's output shows numerator **and** denominator moving |
-| 3 | `check_recommendation.py` rejects a ceiling stated in baseline units that is not sourced from a movement figure, and rejects any option whose movement is the sum of its causes' movements |
-| 4 | Re-running `/investigate` on Acme's Supplier B cause reproduces **≈+5.02 pts**, matching what `/review` found independently |
-| 5 | Tests cover both the single-cause and combined-option cases |
+| 2 | `investigate.md` requires the movement query's output to show numerator **and** denominator moving, and says it in a way a hurried model cannot read past |
+| 3 | `check_recommendation.py` rejects a ceiling stated in baseline units not sourced from a movement figure, and rejects an option whose movement is the sum of its causes' movements |
+| 4 | Tests cover the single-cause and the combined-option cases, on inputs you construct — **hand-written JSON, not a live run** |
+| 5 | A worked example in the command file walks Acme's Supplier B numbers through the new rule by hand: ₹46,121.67 recovered, net revenue rising with it, arriving at ≈+5.02 pts |
 
-Item 4 is the real test: the number already exists, computed by an adversary that had never
-seen this fix.
+Item 5 is the substitute for running it, and it is a good one. `/review` derived +5.02
+independently before this fix existed, so if your arithmetic does not reach it by hand, the
+rule you have written is the wrong rule — and you learn that for the cost of a paragraph
+rather than half an hour.
 
-### Regenerating Acme's artifacts
+**Deferred to phase 7, recorded as `unverified`:** re-running `/investigate` on Acme's
+Supplier B cause and reproducing ≈+5.02 pts live.
+
+### Acme's artifacts — annotate, do not regenerate
 
 `engagements/acme/investigation.json` and `recommendation.md` were written under the old
-rule. Re-run `/investigate` and `/synthesize` for the affected causes to bring them into
-line — a fresh subagent, per the usual procedure — **or**, if that is too expensive, leave
-them and add one line at the top of `recommendation.md` naming the figure as superseded and
-pointing at `RUN_REPORT.md`. Do not leave two documents silently disagreeing. Say which you
-chose and why.
+rule. **Do not re-run anything to fix them.** Add one line at the top of
+`recommendation.md`: the ceiling figures are superseded by phase 6's rule, the corrected
+Supplier B movement is ≈+5.02 pts rather than 7.30, and `RUN_REPORT.md` carries the
+reviewer's finding. That closes the contradiction between the two documents at the cost of a
+sentence. Phase 7 regenerates them properly, from a cold run.
 
 ---
 
@@ -182,6 +204,10 @@ thing phase 5 existed to avoid. The question is its strength, never its existenc
 | 4 | `/setup` still reads the rule from the file, never from memory; `/outcome` still writes only `tracker.csv` |
 | 5 | Nothing client-identifying still crosses into tracked `frameworks.md` — the phase 5 rule holds |
 
+All five are checkable by reading and by unit test. **Fix 2 needs no live run at all:** the
+n-table is arithmetic, and whether `/setup` reads the rule from the file rather than from
+memory is a property of the prose and the lint.
+
 ---
 
 ## The rules that have not changed
@@ -195,9 +221,17 @@ thing phase 5 existed to avoid. The question is its strength, never its existenc
 
 ## Grading
 
-Same procedure as every phase: build here, run in a **fresh `general-purpose` subagent** with
-the whitelist and do-not-read list, check its "Files read", grade afterwards. If you cannot
-arrange it, mark the gate **unverified** rather than grading your own run.
+**No subagent runs this phase.** The usual fresh-context procedure is suspended — not because
+it stopped mattering, but because the budget is committed elsewhere and phase 7 will do it
+properly on a cold run.
+
+So: unit tests, the lint, `python -m unittest discover -s tests -t .`, the client-data guard,
+and a reading of the prose against the question that has found more defects here than any
+other — *does this force the behaviour, or merely request it?* An independent review is still
+worth running if `codex` is on PATH; that is not the constrained budget.
+
+Mark every runtime gate **unverified** in the progress file, with the sentence that would
+verify it, so phase 7 picks each one up without re-deriving what it was meant to show.
 
 ## When you are done
 
@@ -205,6 +239,9 @@ arrange it, mark the gate **unverified** rather than grading your own run.
 2. `RUN_REPORT.md` — append this run. Do not delete what is there.
 3. Branch `phase-6-fixes` pushed. **No merge to `main`** — the owner merges.
 
-**Then stop.** Do not run the pipeline end to end; that is phase 7, deliberately a different
-session. Say in the report whether Acme's artifacts were regenerated or annotated, because
-phase 7 needs to know which it is starting from.
+**Then stop.** Do not run the pipeline end to end, and do not run any single command against
+Acme; that is phase 7, deliberately a different session with a fresh budget.
+
+`PROGRESS_PHASE_6.md` must list, in one place, **every gate left unverified and the exact run
+that would verify it.** That list is phase 7's first task, and writing it well is most of
+what this phase hands forward.
