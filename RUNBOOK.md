@@ -1,29 +1,30 @@
-# Unattended Run — Phases 3 to 5
+# Unattended Run — Phase 6
 
-> Operative runbook. Phases 0, 1 and 2 are done, on `main`, and verified by live runs.
-> These three finish the pipeline.
+> Operative runbook. Phases 0-5 are on `main` and the pipeline has run on Acme. Phase 6 is
+> two corrections the first engagement exposed. Phase 7 — the cold end-to-end run — gets its
+> own file and its own session.
 
 Read [`TASK.md`](TASK.md), [`CLAUDE.md`](CLAUDE.md) and [`BUILD_PLAN.md`](BUILD_PLAN.md)
 first. This file assumes all three, and `TASK.md` carries the per-phase briefs.
 
 ## Scope
 
-**Three phases, then one complete engagement.** Each phase on its own branch, cut from the
-previous phase's completed tip.
+**One branch, two fixes.** Both are corrections to commands already on `main`.
 
 | Phase | Branch | Cut from | Progress file |
 |---|---|---|---|
-| 3 | `phase-3-investigate` | `main` | `PROGRESS_PHASE_3.md` |
-| 4 | `phase-4-synthesize` | `phase-3-investigate` | `PROGRESS_PHASE_4.md` |
-| 5 | `phase-5-outcome` | `phase-4-synthesize` | `PROGRESS_PHASE_5.md` |
+| 6 | `phase-6-fixes` | `main` | `PROGRESS_PHASE_6.md` |
 
-The engagement run belongs to phase 5's branch and lands in `RUN_REPORT.md`.
+`TASK.md` carries both briefs in full. In short: the ceiling is measured against a frozen
+denominator and overstates by roughly a third; and the calibration rule is blunt because the
+gate that tested it demanded a swing.
 
 ## HARD STOP
 
-**After the engagement run, STOP.** Do not begin phase 6. What phase 6 should be depends on
-what the owner sees in that engagement, and `BUILD_PLAN.md` §7 records the candidates rather
-than committing to one.
+**After both fixes are gated, STOP.** Do not run the pipeline end to end. That is phase 7,
+and it must be a session that did not make these fixes — the same reasoning that has graded
+every gate in this repo with a fresh subagent. A run by the author of the fix demonstrates
+the author, not the harness.
 
 **Also stop immediately, at any point, if:**
 
@@ -35,13 +36,13 @@ than committing to one.
 
 ## Order and pacing
 
-**3 → 4 → 5, and the order is not negotiable.** `/synthesize` consumes `investigation.json`,
-so its shape must settle first. `/review` attacks what `/synthesize` produces. `/outcome`
-records what happened to it. Each phase's output is the next one's input.
+**Fix 1 before fix 2** — they are independent, but fix 1 touches the artifacts phase 7 will
+regenerate, and it is the one with a number already waiting to be matched.
 
-**Build the bad-investigation fixture at the start of phase 4, not the end.** It defines
-what "adversarial enough" means, and writing `/review` first means writing it against your
-own idea of a flaw rather than a fixed one.
+**Inside fix 2, the gate before the rule, and in separate commits.** The rule is blunt
+because the gate demanded a swing; rewrite the gate first and the honest formula follows.
+Change the formula first and you will fit the gate to whatever you built. The commit order is
+part of the gate.
 
 ### Do not idle
 
@@ -49,11 +50,12 @@ If a phase is blocked, do not wait. Move to the next thing that is not blocked a
 the block. If everything is blocked, that is a fail-stop — write the report and stop rather
 than burning the run.
 
-### Expect this to take hours, not one
+### This is smaller than phases 3-5
 
-Phase 2 alone took about an hour with review. Three phases, three fresh-subagent gradings
-and a full pipeline run is several times that. Pace accordingly: a rushed phase 5 gate is
-the one most likely to be quietly skipped, and it is the phase that makes the loop real.
+Two command edits, a checker rule, a formula, and their tests. The expensive part is
+re-running `/investigate` and `/synthesize` on Acme to regenerate the artifacts, and `TASK.md`
+gives you an explicit cheaper alternative if the budget will not carry it. Spend the budget
+on getting fix 1's number right, not on polish.
 
 ## Before you begin
 
@@ -139,33 +141,25 @@ Clean tree, all work committed, branch pushed.
 
 Full reasoning in `TASK.md`. In short:
 
-**Phase 3 — `/investigate`**
+**Fix 1 — the ceiling denominator**
 
 | # | Must |
 |---|---|
-| 1 | Separates rate from mix on the Supplier B finding, and names Supplier A's +3.04 points |
-| 2 | Every allocation-dependent figure is paired with its allocation-free counterpart |
-| 3 | Every counter-hypothesis is ruled out with a query, or recorded as not ruled out with the claim weakened |
-| 4 | A figure missing its source is removed, not softened |
-| 5 | `validate_findings.py` extended, not duplicated, and passing |
+| 1 | `recoverable_at_most` carries a currency unit only; baseline points come only from `baseline_movement_at_most` |
+| 2 | The movement query's output shows numerator **and** denominator moving |
+| 3 | `check_recommendation.py` rejects baseline-unit ceilings not sourced from a movement figure, and rejects an option whose movement is the sum of its causes' |
+| 4 | Re-running `/investigate` on Acme's Supplier B cause reproduces **≈+5.02 pts** — the figure `/review` found independently |
+| 5 | Tests cover the single-cause and the combined-option cases |
 
-**Phase 4 — `/synthesize` + `/review`**
-
-| # | Must |
-|---|---|
-| 1 | `/synthesize` gives one recommendation with 2-3 options, each tied to the baseline in its own unit |
-| 2 | `/investigate` run fresh separates mix from rate **unprompted** |
-| 3 | `/review` fed `fixtures/bad-investigation/` **kills** it, naming Supplier A's 3.04 points specifically |
-| 4 | Naming only "have you considered other factors?" is a **fail** — generic scepticism is free |
-
-**Phase 5 — `/outcome` + calibration**
+**Fix 2 — the calibration gate, then the rule**
 
 | # | Must |
 |---|---|
-| 1 | `/outcome` writes only `practice/tracker.csv`; `/setup` remains the only writer of `frameworks.md` |
-| 2 | Nothing client-identifying crosses from `tracker.csv` into tracked `frameworks.md` |
-| 3 | rank → outcome(rejected) → setup → rank again, and **the ordering visibly moves** |
-| 4 | Both orderings and the diff shown in the progress file |
+| 1 | The gate is rewritten in `TASK.md` and `RUNBOOK.md` **before** the formula changes, and the commit order shows it |
+| 2 | `frameworks.md` carries the formula, its reasoning, and the adjustment at n = 1, 2, 5 |
+| 3 | A single rejection's effect is a stated number, and whether it can cross a verdict band is answered explicitly either way |
+| 4 | `/setup` still reads the rule from the file; `/outcome` still writes only `tracker.csv` |
+| 5 | Nothing client-identifying crosses into tracked `frameworks.md` — the phase 5 rule holds |
 
 **Grade every one of these in a session that has not read the answer key.** `TASK.md`
 §"Grading without cheating" has the procedure. If you cannot arrange it, mark the gate

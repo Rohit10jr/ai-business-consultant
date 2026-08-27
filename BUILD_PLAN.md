@@ -167,6 +167,8 @@ fails if anything under it is ever staged.
 | **3** | `/investigate` + the grounding checklist | A figure missing its source is removed, not softened; rate separated from mix, naming Supplier A's +3.04 pts |
 | **4** | `/synthesize` + `/review` | `/review` kills the planted bad inference in `fixtures/bad-investigation/`, naming the specific omission |
 | **5** | `/outcome` + calibration | A recorded rejection visibly moves the next `/rank` ordering |
+| **6** | Two corrections the first engagement exposed | The ceiling reproduces `/review`'s +5.02 pts; the calibration gate is rewritten before its formula |
+| **7** | The cold run | The whole pipeline, one sitting, nothing fixed mid-run, by a session that did not build it |
 
 **Phase 0 builds the synthetic corpus** — a fictional D2C company with a margin problem,
 ~20 files, three findings planted at graded difficulty, one red herring, and one flaw
