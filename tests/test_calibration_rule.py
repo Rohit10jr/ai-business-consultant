@@ -23,8 +23,9 @@ LIVE_ROW = re.compile(r"^\| `?([a-z-]+)`? \| (\d+) \| (\d+) \| (\d+) \| (\d+) \|
 
 def read_rule():
     text = FRAMEWORKS.read_text(encoding="utf-8")
-    m = FORMULA.search(text)
-    assert m, "the formula line in practice/frameworks.md no longer matches the shape this test reads"
+    section = text[text.index("## Calibration"): text.index("## Lessons")]
+    m = FORMULA.search(section)  # the active rule, in its section - not any line anywhere
+    assert m, "the formula line in practice/frameworks.md's Calibration section no longer matches the shape this test reads"
     return text, int(m.group("k")), int(m.group("cap"))
 
 
@@ -67,6 +68,8 @@ class CalibrationRuleTests(unittest.TestCase):
         text, k, cap = read_rule()
         section = text[text.index("## Calibration"): text.index("## Lessons")]
         live = LIVE_ROW.findall(section)
+        # Either /setup has written rows, or the placeholder says none - never silence.
+        self.assertTrue(live or "_none yet_" in section, "no live rows and no placeholder: the table is gone")
         for ftype, n, a, m, r, adj in live:
             with self.subTest(finding_type=ftype):
                 self.assertEqual(int(n), int(a) + int(m) + int(r))

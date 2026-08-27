@@ -270,9 +270,22 @@ against the baseline. Where it cannot be computed, write the string
 `not derivable — <why, and what file would be needed>`; a cause with a rupee ceiling and no
 movement figure is honest, a cause quoting rupees ÷ frozen denominator as points is not.
 
-Where an allocation is involved, the pair goes in `allocation_pairs` and both figures here
-are the allocation-free half. A ceiling is not a forecast and not a recommendation: it says
-what a perfect fix of this one cause could return, and nothing about whether to attempt one.
+The movement's record carries the query's **printed output verbatim** in `query_output`;
+the validator looks for all four terms in it, so a term that was typed into the JSON
+rather than printed by the query fails. Where an allocation is involved, the pair goes in
+`allocation_pairs` and both figures here are the allocation-free half. A ceiling is not a
+forecast and not a recommendation: it says what a perfect fix of this one cause could
+return, and nothing about whether to attempt one.
+
+**When two or more causes are investigated in one run, measure their overlap.** For each
+pair, one query that counts the rows both fixes would touch — the returned lines the first
+would prevent against the orders the second would change — recorded under `overlaps` with
+the count and the query. `/synthesize` may combine two causes into one option only when
+their pair is recorded with `shared_rows: 0`; two causes that touch the same rows would
+have the same rupees recovered twice, and the joint movement rebuilt from their deltas
+would be wrong in the same direction the frozen denominator was. Two views of one cause
+(a rate seen wider and the same rate on one segment) always overlap, and the record says
+so rather than leaving it to `/synthesize` to notice.
 
 **Worked, by hand, on Acme's Supplier B cause** — the numbers `/review` derived on the
 first engagement, which the rule must reproduce or the rule is wrong:
@@ -366,14 +379,28 @@ shape:
         "denominator_unchanged_because": "<only when denominator_delta is 0: why the fix leaves it alone>",
         "from": 0, "to": 0, "delta": 0, "unit": "pts of <the baseline metric>", "period": "<period>",
         "query": "<path — its output prints numerator and denominator, before and after>",
-        "query_text": "<verbatim>", "rows_in": 0, "rows_out": 0
+        "query_text": "<verbatim>", "query_output": "<the query's printed output, verbatim — all four terms must appear in it>",
+        "rows_in": 0, "rows_out": 0
       },
       "open_questions": ["<for the human to ask>"],
       "status": "investigated | blocked"
     }
-  }
+  },
+  "overlaps": [
+    {"a": "<slug>", "b": "<slug>", "shared_rows": 0,
+     "query": "scratch/<client>/investigate/overlap_<a>_<b>.py", "query_text": "<verbatim>",
+     "rows_in": 0, "rows_out": 0}
+  ]
 }
 ```
+
+`overlaps` is required whenever two or more causes are investigated: one entry per pair,
+with the count of rows both fixes would touch, by a query over the corpus (the returned
+lines one cause would prevent and the orders the other would change, for instance). It
+is what lets `/synthesize` combine two causes' movements — only a pair with
+`shared_rows: 0` may be combined; the same returns counted under two causes would be
+recovered twice. An entry already present for a pair from an earlier run is replaced
+only if one of its slugs is re-investigated this run.
 
 `decompositions` may instead be the string `"n/a — <why the finding is not a rate>"`, and
 then the baseline-effect denominator is decomposed under `evidence` as Step 3 says. Only a

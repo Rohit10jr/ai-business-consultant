@@ -101,7 +101,19 @@ record = {
                 "numerator_from": 137032.35, "numerator_to": 156913.14, "numerator_delta": 19880.79,
                 "denominator_from": 675972.70, "denominator_to": 741498.79, "denominator_delta": 65526.09,
                 "from": 20.27, "to": 21.16, "delta": 0.89, "unit": "pts of contribution margin", "period": Q2,
-                "query": f"{SCRATCH}/q02_saving.py", "query_text": q("q02_saving"), "rows_in": 5475, "rows_out": 83,
+                "query": f"{SCRATCH}/q02_saving.py", "query_text": q("q02_saving"),
+                "query_output": (
+                    "rows raw 5476 -> deduplicated 5475\n"
+                    "cost sheet rows 18; join orders->cost on sku: 5475 lines in, 5475 matched\n"
+                    "apparel return rate 11.85% -> 26.60%, rise 14.75 pts\n"
+                    "Q2 FY26 apparel lines 312; excess returned lines at the old rate: 46.0\n"
+                    "average cost per returned apparel line Q2 FY26: 431.88 rupees\n"
+                    "cost of the rise at Q2 FY26 run rate: 19,880.79 rupees per quarter\n"
+                    "Q2 FY26 net revenue 675,972.70; the rise costs 2.94 pts of net revenue\n"
+                    "margin with the fix: contribution 137,032.35 -> 156,913.14 (+19,880.79); "
+                    "net revenue 675,972.70 -> 741,498.79 (+65,526.09); 20.27% -> 21.16% (+0.89 pts)\n"
+                ),
+                "rows_in": 5475, "rows_out": 83,
             },
             "open_questions": ["When exactly did Supplier B change its size block, and were size charts on the store updated with it?"],
             "status": "investigated",

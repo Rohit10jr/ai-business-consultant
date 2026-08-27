@@ -62,6 +62,8 @@ def movement(**kw):
          "from": 19.72, "to": 24.74, "delta": 5.02, "unit": "pts of contribution margin",
          "period": "Q1 FY26 (Jan-Mar 2026, inclusive)",
          "query": "scratch/acme/investigate/s/q06_movement.py", "query_text": "import csv\n...",
+         "query_output": ("contribution 124,540.03 -> 170,661.70 (+46,121.67); "
+                          "net revenue 631,425.85 -> 689,795.85 (+58,370.00); 19.72% -> 24.74% (+5.02 pts)"),
          "rows_in": 5475, "rows_out": 3}
     m.update(kw)
     return m
@@ -312,12 +314,44 @@ class ValidateInvestigationTests(unittest.TestCase):
 
     def test_unmoved_denominator_needs_a_reason(self):
         d = good()
-        one(d)["baseline_movement_at_most"].update(denominator_to=631425.85, denominator_delta=0.0,
-                                                    to=27.03, delta=7.31)  # 170661.70 / 631425.85
+        one(d)["baseline_movement_at_most"].update(
+            denominator_to=631425.85, denominator_delta=0.0, to=27.03, delta=7.31,  # 170661.70 / 631425.85
+            query_output="contribution 124,540.03 -> 170,661.70; net revenue 631,425.85 -> 631,425.85; 19.72% -> 27.03%")
         errors = v.validate_investigation(d)
         self.assertTrue(any("denominator_unchanged_because" in e for e in errors), errors)
         one(d)["baseline_movement_at_most"]["denominator_unchanged_because"] = "a courier saving moves cost, not revenue"
         self.assertEqual(v.validate_investigation(d), [])
+
+    def test_movement_terms_must_appear_in_the_query_output(self):
+        # Review finding: a term typed into the JSON, not printed by the query.
+        d = good()
+        one(d)["baseline_movement_at_most"]["query_output"] = "contribution 124,540.03 -> 170,661.70; 19.72% -> 24.74%"
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("denominator_from" in e and "does not appear in query_output" in e for e in errors), errors)
+        one(d)["baseline_movement_at_most"]["query_output"] = ""
+        self.assertTrue(any("query_output is empty" in e for e in v.validate_investigation(d)))
+
+    def test_points_of_the_baseline_are_banned_on_other_figures(self):
+        # Review finding: the frozen-denominator figure recorded as evidence with a label.
+        d = good()
+        one(d)["evidence"].append(fig("frozen ceiling", 7.30, unit="pts of contribution margin"))
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("claims points of the baseline" in e for e in errors), errors)
+        one(d)["evidence"][-1]["unit"] = "pts of return rate"  # a decomposition term is fine
+        self.assertEqual(v.validate_investigation(d), [])
+
+    def test_two_causes_need_their_overlap_recorded(self):
+        d = good()
+        second = dict(one(d), finding="meta", title="Meta")
+        d["investigations"]["meta"] = second
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("no entry for" in e and "return-rate-doubled / meta" in e for e in errors), errors)
+        d["overlaps"] = [{"a": "return-rate-doubled", "b": "meta", "shared_rows": 0,
+                          "query": "scratch/acme/investigate/overlap.py", "query_text": "import csv\n...",
+                          "rows_in": 5475, "rows_out": 0}]
+        self.assertEqual(v.validate_investigation(d), [])
+        d["overlaps"][0]["shared_rows"] = "none"
+        self.assertTrue(any("shared_rows must be an integer" in e for e in v.validate_investigation(d)))
 
     def test_movement_may_be_not_derivable_with_a_reason(self):
         d = good()

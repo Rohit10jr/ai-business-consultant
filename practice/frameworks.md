@@ -69,16 +69,18 @@ row is ±8 fixability, which at the 30% weight is **±2.4 score points**; the ve
 points of a boundary is a finding already on the boundary. Fresh scoring agents move raw
 scores by ±1–3 between runs on their own, so a single row can tip a finding that was
 already tipping, and not one that was not. `/rank` prints "Calibration moved: …" from one
-run whenever it happens, so it is never silent.
+run naming every finding whose position *or verdict band* changed, so a band crossing is
+never silent even when the order stands.
 
 | finding type | rows | accepted | modified | rejected | fixability adjustment |
 |---|---|---|---|---|---|
-| supplier | 1 | 1 | 0 | 0 | +8 |
-| channel-spend | 1 | 0 | 0 | 1 | −8 |
+| _none yet_ | | | | | |
 
-*The two rows above were recomputed by hand under this rule in phase 6 from the same
-tracker (previously +10 and −25 under `25 × (a − r) / n`); `/setup frameworks` regenerates
-them from the file on its next run and the human confirms them then.*
+*The rule above changed in phase 6 (from `25 × (a − r) / n`). The rows `/setup frameworks`
+had written under the old rule (+10 supplier, −25 channel-spend, from two tracker rows) were
+cleared rather than recomputed by hand, because `/setup` is this file's only writer. The
+tracker still holds those rows; `/setup frameworks` regenerates the table from the file's
+formula on its next run and the human confirms it then.*
 
 ## Lessons from past engagements
 

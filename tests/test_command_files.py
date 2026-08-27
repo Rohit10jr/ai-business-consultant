@@ -168,6 +168,10 @@ class DiscoverTests(unittest.TestCase):
         self.assertIn("₹170,661.70 | ₹689,795.85 | **24.74%**", text)
         self.assertIn("**+5.02 pts**", text)
         self.assertIn("**7.30 pts** — divided the numerator's gain by a denominator that the same fix raises", text)
+        # The query's printed output is part of the record, and overlap is measured.
+        self.assertIn("`query_output`", text)
+        self.assertIn("**When two or more causes are investigated in one run, measure their overlap.**", text)
+        self.assertIn("`shared_rows: 0`", text)
 
     def test_subagent_prompts_carry_the_whitelist(self):
         self.assertIn("do-not-read list from Step 0 verbatim", self.text)
@@ -232,7 +236,9 @@ class RankTests(unittest.TestCase):
         for key in ("rank_finding_type", "rank_calibration", "rank_fixability_calibrated", "rank_score_uncalibrated"):
             self.assertIn(key, self.text)
         # The calibration's effect must be provable within one run, not across two.
-        self.assertIn("**Every\ndifference between them is the calibration's effect and nothing else**", self.text)
+        self.assertIn("**Every difference between them is the calibration's effect and nothing else**", self.text)
+        # A band crossing with no position change is still reported.
+        self.assertIn("position **or verdict band** changed", self.text)
         self.assertIn("score_uncalibrated = impact × w_impact + confidence × w_confidence + fixability × w_fixability", self.text)
         self.assertIn('"finding_type": "<one entry from the Finding types list, verbatim>"', self.text)
 
@@ -368,6 +374,7 @@ class SynthesizeTests(unittest.TestCase):
         self.assertIn("**recomputed jointly, never added**", self.text)
         self.assertIn("`to = 100 × (n₀ + Δn₁ + Δn₂) / (d₀ + Δd₁ + Δd₂)`", self.text)
         self.assertIn("Two movement figures are never added", self.text)
+        self.assertIn("**Two causes may be\n  combined only if their pair is recorded with `shared_rows: 0`.**", self.text)
         self.assertIn("2b. **Movements are recomputed, never added.**", self.text)
         self.assertIn("- Movement: <from>% → <to>% (<delta> pts)", self.text)
         self.assertIn("rupees, never points", self.text)

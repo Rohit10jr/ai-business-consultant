@@ -116,6 +116,28 @@ class MovementTests(unittest.TestCase):
         errors = c.check(text, INV, SCOPE)
         self.assertTrue(any("not a baseline_movement_at_most figure" in e for e in errors), errors)
 
+    def test_frozen_denominator_ratio_is_not_a_movement(self):
+        # Review blocker: any `/` counted as a recomputed ratio, so the old bug passed as a
+        # Movement line. A rebuilt ratio starts from numerator_from and denominator_from
+        # and adds a delta to each.
+        text = ("### Option A — x\n- Ceiling: ₹46,121.67\n- Movement: +7.30 pts [Arithmetic]\n\n"
+                "## Arithmetic\n\n- 7.30 = 100 × 46,121.67 / 631,425.85\n")
+        errors = c.check(text, INV, SCOPE)
+        self.assertTrue(any("not a baseline_movement_at_most figure or a ratio" in e for e in errors), errors)
+        text = ("### Option A — x\n- Movement: 100 pts [Arithmetic]\n\n## Arithmetic\n\n- 100 = 100 × 631,425.85 / 631,425.85\n")
+        self.assertTrue(c.check(text, INV, SCOPE))
+
+    def test_points_of_the_baseline_in_prose_are_policed(self):
+        # Review blocker, second half: narrative "7.30% of revenue" backed by Arithmetic.
+        text = ("Supplier B is worth 7.30% of revenue.\n\n## Arithmetic\n\n- 7.30 = 100 × 46,121.67 / 631,425.85\n")
+        errors = c.check(text, INV, SCOPE)
+        self.assertTrue(any("stated as points of the baseline" in e for e in errors), errors)
+        text = ("Supplier B is worth 7.30 pts.\n\n## Arithmetic\n\n- 7.30 = 100 × 46,121.67 / 631,425.85\n")
+        errors = c.check(text, INV, SCOPE)
+        self.assertTrue(any("exists only through the Arithmetic section" in e for e in errors), errors)
+        # A recorded decomposition term quoted in points is ordinary evidence.
+        self.assertEqual(c.check("Supplier A accounts for 9.93 points of the rise.", INV, SCOPE), [])
+
     def test_movement_from_a_non_ratio_arithmetic_line_fails(self):
         # An Arithmetic line without a division is not a recomputed ratio.
         text = ("### Option A — x\n- Ceiling: ₹46,121.67\n- Movement: +7.30 pts [Arithmetic]\n\n"

@@ -97,11 +97,15 @@ Two or three options. Each option is a **set of causes to act on**, not a slogan
   `numerator_delta`, over the baseline's denominator plus every cause's
   `denominator_delta` — and write it out as one division in the Arithmetic section:
   `to = 100 × (n₀ + Δn₁ + Δn₂) / (d₀ + Δd₁ + Δd₂)`, then `delta = to − from`. That is a
-  joint recomputation only when the causes act on different rows; if the investigation
-  shows they overlap (the same returns, the same orders), they are not combined, and the
-  option is sized on the larger alone with the overlap named. If any cause's movement is
-  `not derivable`, the option states its rupee total and says its movement is not
-  derivable. Two movement figures are never added — the checker refuses the sum
+  joint recomputation only when the causes act on different rows — and that is not your
+  judgement to make: the investigation's top-level `overlaps` list carries, for every
+  pair of causes, the count of rows both fixes touch, by a query. **Two causes may be
+  combined only if their pair is recorded with `shared_rows: 0`.** A pair with shared
+  rows, or a pair with no entry, is not combined: the option is sized on the larger cause
+  alone, in rupees and movement, with the overlap (or the missing entry) named. If any
+  cause's movement is `not derivable`, the option states its rupee total and says its
+  movement is not derivable. Two movement figures are never added — the checker refuses
+  the sum
 - **`requires`** — what the client would have to do, in the corpus's own terms: a
   threshold, a supplier, a code rule, a channel budget. No rupee cost is stated unless a
   figure for it exists in the investigation; effort is stated in words and in the finding's

@@ -46,6 +46,17 @@ ARITHMETIC_LINE = re.compile(r"^\s*(?:[-*]\s*)?`?(.+?)\s*=\s*(.+?)`?\s*$")
 CEILING_LINE = re.compile(r"^\s*[-*]\s*Ceiling:\s*(.+)$", re.M)
 MOVEMENT_LINE = re.compile(r"^\s*[-*]\s*Movement:\s*(.+)$", re.M)
 POINTS_UNIT = re.compile(r"\bpts?\b|\bpoints?\b|%", re.I)
+# Figures written as points of the baseline, wherever they appear in the prose. Two
+# grades: a figure that names the baseline ("of net revenue", "of the baseline", "of
+# contribution margin") must be a movement figure or a rebuilt ratio; a bare "pts" or
+# "points" may also be any recorded figure - a decomposition term is points of a rate,
+# and the claim sentence quotes it verbatim - but never a figure that exists only
+# through the Arithmetic section.
+BASELINE_POINTS = re.compile(
+    r"(?<![\w.])([+−-]?\d[\d,]*(?:\.\d+)?)\s*(?:pts?|points?)\s+of\s+(?:the\s+baseline|net\s+revenue|revenue|"
+    r"contribution\s+margin|margin|the\s+baseline\s+metric)\b"
+    r"|(?<![\w.])([+−-]?\d[\d,]*(?:\.\d+)?)\s*%\s+of\s+(?:net\s+)?(?:revenue|the\s+baseline|contribution\s+margin)\b", re.I)
+BARE_POINTS = re.compile(r"(?<![\w.])([+−-]?\d[\d,]*(?:\.\d+)?)\s*(?:pts?|points?)\b", re.I)
 NUMBER = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
 ALLOWED_NODES = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Add, ast.Sub,
                  ast.Mult, ast.Div, ast.USub)
@@ -75,31 +86,70 @@ def _decimals(token: str) -> int:
     return len(token.split(".")[1]) if "." in token else 0
 
 
-def recorded_from(investigation: dict, scope_text: str):
-    """(every recorded value, recoverable_at_most values, movement figures, movement deltas)."""
-    values: list[float] = []
-    ceilings: list[float] = []
-    movements: list[float] = []
-    deltas: list[float] = []
+class Recorded:
+    """What the investigation and the baseline line let a recommendation say."""
+
+    def __init__(self):
+        self.values: list[float] = []      # every recorded figure
+        self.ceilings: list[float] = []    # recoverable_at_most, rupees
+        self.movements: list[float] = []   # from / to / delta of each movement
+        self.deltas: list[float] = []      # movement deltas only
+        self.num_from: list[float] = []    # movement numerator_from
+        self.num_delta: list[float] = []   # movement numerator_delta
+        self.den_from: list[float] = []    # movement denominator_from
+        self.den_delta: list[float] = []   # movement denominator_delta
+
+
+def recorded_from(investigation: dict, scope_text: str) -> Recorded:
+    r = Recorded()
     for inv in investigation.get("investigations", {}).values():
-        values += _recorded_values(inv)
+        r.values += _recorded_values(inv)
         rec = inv.get("recoverable_at_most")
         if isinstance(rec, dict) and isinstance(rec.get("value"), (int, float)):
-            ceilings.append(float(rec["value"]))
+            r.ceilings.append(float(rec["value"]))
         mov = inv.get("baseline_movement_at_most")
         if isinstance(mov, dict):
             for k in ("from", "to", "delta"):
                 if isinstance(mov.get(k), (int, float)):
-                    movements.append(float(mov[k]))
+                    r.movements.append(float(mov[k]))
             if isinstance(mov.get("delta"), (int, float)):
-                deltas.append(float(mov["delta"]))
+                r.deltas.append(float(mov["delta"]))
+            for key, bucket in (("numerator_from", r.num_from), ("numerator_delta", r.num_delta),
+                                ("denominator_from", r.den_from), ("denominator_delta", r.den_delta)):
+                if isinstance(mov.get(key), (int, float)):
+                    bucket.append(float(mov[key]))
     baseline = next((l for l in scope_text.splitlines() if l.startswith("baseline:")), "")
     for tok in _numbers_in(baseline):  # "19.7%" yes, the 26 in "FY26" no
         try:
-            values.append(float(tok))
+            r.values.append(float(tok))
         except ValueError:
             pass
-    return values, ceilings, movements, deltas
+    return r
+
+
+def _is_recomputed_ratio(expression: str, r: Recorded) -> bool:
+    """A movement-grade ratio is rebuilt from the baseline's own terms: a numerator that
+    starts from a recorded numerator_from plus at least one numerator_delta, over a
+    denominator that starts from a recorded denominator_from plus at least one
+    denominator_delta. `100 × 46,121.67 / 631,425.85` - a delta over the frozen
+    denominator - has no numerator_from and no denominator_delta, and is refused."""
+    text = expression.replace("÷", "/")
+    depth, split = 0, -1
+    for i, ch in enumerate(text):
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif ch == "/" and depth == 0:
+            split = i
+            break
+    if split < 0:
+        return False
+    left = [t.replace(",", "") for t in NUMBER.findall(text[:split])]
+    right = [t.replace(",", "") for t in NUMBER.findall(text[split + 1:])]
+    has = lambda toks, bucket: any(_matches_recorded(t, bucket) for t in toks)  # noqa: E731
+    return (has(left, r.num_from) and has(left, r.num_delta)
+            and has(right, r.den_from) and has(right, r.den_delta))
 
 
 def _sums_of_deltas(deltas: list[float]) -> list[float]:
@@ -110,14 +160,16 @@ def _sums_of_deltas(deltas: list[float]) -> list[float]:
     return sums
 
 
-def arithmetic_results(text: str, recorded: list[float], ceilings: list[float], movements: list[float] = ()):
+def arithmetic_results(text: str, r: Recorded):
     """Evaluate the Arithmetic section.
 
     Returns (results, ceiling_results, ratio_results, errors): results whose every term is
     recorded and whose value is what the expression makes it; the subset whose every term
-    is a recoverable_at_most value; the subset whose expression contains a division (a
-    recomputed ratio); and the errors found.
+    is a recoverable_at_most value; the subset that is movement-grade - a ratio rebuilt
+    from the baseline's own terms, or arithmetic whose every term is already a movement
+    figure; and the errors found.
     """
+    recorded, ceilings, movements = r.values, r.ceilings, r.movements
     results, ceiling_results, ratio_results, errors = [], [], [], []
     m = ARITHMETIC_HEADING.search(text)
     if not m:
@@ -155,17 +207,21 @@ def arithmetic_results(text: str, recorded: list[float], ceilings: list[float], 
         results.append(lhs)
         if all(_matches_recorded(t, ceilings + ceiling_results) for t in term_tokens):
             ceiling_results.append(lhs)
-        # Movement-grade: a recomputed ratio, or arithmetic whose every term is already a
-        # movement figure (a delta as `to − from`). A sum of deltas also lands here and is
-        # caught by the delta-sum rule in check().
-        if is_ratio or all(_matches_recorded(t, movements + ratio_results) for t in term_tokens):
+        # Movement-grade: a ratio rebuilt from the baseline's own terms, or arithmetic whose
+        # every term is already a movement figure (a delta as `to − from`). A sum of deltas
+        # also lands here and is caught by the delta-sum rule in check(). A division that
+        # is not rebuilt from both terms - the frozen-denominator bug - is plain arithmetic:
+        # its result may appear as a figure, never as a movement.
+        if (is_ratio and _is_recomputed_ratio(lm.group(2), r)) or \
+                (not is_ratio and all(_matches_recorded(t, movements + ratio_results) for t in term_tokens)):
             ratio_results.append(lhs)
     return results, ceiling_results, ratio_results, errors
 
 
 def check(text: str, investigation: dict, scope_text: str) -> list[str]:
-    recorded, ceilings, movements, deltas = recorded_from(investigation, scope_text)
-    results, ceiling_results, ratio_results, errors = arithmetic_results(text, recorded, ceilings, movements)
+    r = recorded_from(investigation, scope_text)
+    recorded, ceilings, movements, deltas = r.values, r.ceilings, r.movements, r.deltas
+    results, ceiling_results, ratio_results, errors = arithmetic_results(text, r)
     allowed = recorded + results
     body = text
     m = ARITHMETIC_HEADING.search(text)
@@ -193,6 +249,22 @@ def check(text: str, investigation: dict, scope_text: str) -> list[str]:
         if not _matches_recorded(toks[0], ceilings + ceiling_results):
             errors.append(f"ceiling {toks[0]!r} is not a recoverable_at_most value or arithmetic over them only - "
                           "a finding's magnitude is recorded, but it is not a ceiling")
+
+    # Points of the baseline anywhere in the prose - not only on Ceiling and Movement
+    # lines - must be a movement figure or a rebuilt ratio. A rate in % (a return rate,
+    # a share) is ordinary evidence; "pts", "points", and "% of revenue / of the
+    # baseline / of contribution margin" are claims about the baseline.
+    movement_grade = movements + ratio_results
+    for pm in BASELINE_POINTS.finditer(body):
+        tok = (pm.group(1) or pm.group(2)).replace(",", "").lstrip("+−-")
+        if not _matches_recorded(tok, movement_grade):
+            errors.append(f"{tok!r} is stated as points of the baseline ({pm.group(0).strip()!r}) but is not a "
+                          "baseline_movement_at_most figure or a ratio rebuilt from both terms")
+    for pm in BARE_POINTS.finditer(body):
+        tok = pm.group(1).replace(",", "").lstrip("+−-")
+        if not _matches_recorded(tok, recorded + movement_grade):
+            errors.append(f"{tok!r} pts ({pm.group(0).strip()!r}) is neither a recorded figure nor a movement - "
+                          "a points figure that exists only through the Arithmetic section")
 
     delta_sums = _sums_of_deltas(deltas)
     for mm in MOVEMENT_LINE.finditer(body):

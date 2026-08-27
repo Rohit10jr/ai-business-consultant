@@ -176,8 +176,33 @@ REQUIRED_INVESTIGATION = {"finding", "title", "investigated_on", "reverified", "
 CURRENCY_MARKS = ("₹", "rs", "rupee", "inr", "$", "usd", "€", "eur", "£", "gbp")
 POINTS_MARKS = ("pt", "point", "%", "margin", "percent")
 MOVEMENT_KEYS = {"numerator_from", "numerator_to", "numerator_delta", "denominator_from",
-                 "denominator_to", "denominator_delta", "from", "to", "delta", "unit", "period"}
+                 "denominator_to", "denominator_delta", "from", "to", "delta", "unit", "period",
+                 "query_output"}
+MOVEMENT_NUMERIC_KEYS = MOVEMENT_KEYS - {"unit", "period", "query_output"}
 RATIO_TOLERANCE = 0.011  # two-decimal points of the baseline
+# A unit that claims points of the baseline metric. Allowed only on
+# baseline_movement_at_most; on any other figure it is the frozen-denominator bug
+# wearing a label. "pts of return rate" (a decomposition term) is not this.
+BASELINE_POINTS_UNIT = re.compile(
+    r"(pt|point)s?\s+of\s+(the\s+baseline|contribution\s+margin|margin|the\s+baseline\s+metric)|"
+    r"%\s+of\s+(the\s+baseline|contribution\s+margin)", re.I)
+
+
+def _printed(value: float, output: str) -> bool:
+    """Does the query's printed output carry this number, with or without thousands
+    separators, at two decimals or as written?"""
+    candidates = {f"{value:,.2f}", f"{value:.2f}", f"{value:,.1f}", f"{value:.1f}", f"{value:g}", str(value)}
+    return any(c in output for c in candidates)
+
+
+def _pairs_covered(overlaps: list, slugs: list[str]) -> list[str]:
+    seen = {frozenset((o.get("a"), o.get("b"))) for o in overlaps if isinstance(o, dict)}
+    missing = []
+    for i, a in enumerate(slugs):
+        for b in slugs[i + 1:]:
+            if frozenset((a, b)) not in seen:
+                missing.append(f"{a} / {b}")
+    return missing
 CLAIM_STRENGTHS = ("established", "partial", "unsupported")
 # Every investigation must have looked at these three shapes of alternative, plus
 # the cause it is arguing for. Only `mix` may be absent, and only for a finding
@@ -264,7 +289,7 @@ def _recorded_values(inv: dict) -> list[float]:
         add(rec.get("value"))
     mov = inv.get("baseline_movement_at_most")
     if isinstance(mov, dict):
-        for k in MOVEMENT_KEYS - {"unit", "period"}:
+        for k in MOVEMENT_NUMERIC_KEYS:
             add(mov.get(k))
     return values
 
@@ -445,6 +470,16 @@ def validate_investigation(data: dict) -> list[str]:
             errors += _figure_errors(f"{where} evidence[{i}]", fig)
             if not isinstance(fig.get("value"), (int, float)):
                 errors.append(f"{where} evidence[{i}]: value must be a number")
+        # Points of the baseline belong to baseline_movement_at_most alone. Any other
+        # figure carrying that unit is rupees over a frozen denominator with a label.
+        labelled = ([(f"evidence[{i}]", f) for i, f in enumerate(inv["evidence"])]
+                    + [(f"reverified[{i}]", f) for i, f in enumerate(inv["reverified"])]
+                    + [(f"allocation_pairs[{i}].{half}", (p.get(half) or {}))
+                       for i, p in enumerate(inv["allocation_pairs"]) for half in ("allocation_free", "allocated")])
+        for label, fig in labelled:
+            if isinstance(fig, dict) and BASELINE_POINTS_UNIT.search(str(fig.get("unit", ""))):
+                errors.append(f"{where} {label}: unit {fig.get('unit')!r} claims points of the baseline - only "
+                              "baseline_movement_at_most may; a rupee delta over the old denominator is not a movement")
         rec = inv["recoverable_at_most"]
         if isinstance(rec, str):
             if not rec.lower().startswith("not derivable"):
@@ -476,7 +511,7 @@ def validate_investigation(data: dict) -> list[str]:
             if miss:
                 errors.append(f"{mw}: missing keys {sorted(miss)} - the query must show numerator and denominator before and after")
             else:
-                nums = {k: mov[k] for k in MOVEMENT_KEYS - {"unit", "period"}}
+                nums = {k: mov[k] for k in MOVEMENT_NUMERIC_KEYS}
                 if not all(isinstance(v, (int, float)) for v in nums.values()):
                     errors.append(f"{mw}: every term must be a number")
                 else:
@@ -493,6 +528,15 @@ def validate_investigation(data: dict) -> list[str]:
                     if d1 == d0 and not str(mov.get("denominator_unchanged_because", "")).strip():
                         errors.append(f"{mw}: the denominator did not move and no denominator_unchanged_because is given - "
                                       "a fix that restores revenue moves it; say why this one does not")
+                    # The query's printed output is the evidence that both terms were
+                    # computed, not typed: all four must appear in it.
+                    output = str(mov.get("query_output", ""))
+                    if not output.strip():
+                        errors.append(f"{mw}: query_output is empty - paste the query's printed output; it must show both terms before and after")
+                    else:
+                        for label, val in (("numerator_from", n0), ("numerator_to", n1), ("denominator_from", d0), ("denominator_to", d1)):
+                            if not _printed(float(val), output):
+                                errors.append(f"{mw}: {label} = {val} does not appear in query_output - the term was typed, not computed")
                 unit = str(mov.get("unit", "")).lower()
                 if not any(m in unit for m in ("pt", "point")):
                     errors.append(f"{mw}: unit must be points of the baseline, got {mov.get('unit')!r}")
@@ -505,6 +549,27 @@ def validate_investigation(data: dict) -> list[str]:
             for tok in _numbers_in(inv[label]):
                 if not _matches_recorded(tok, recorded):
                     errors.append(f"{where}: {label} contains {tok!r}, which matches no recorded figure in this entry - a number from nowhere")
+
+    # --- overlap between causes: /synthesize may combine two causes only if the rows
+    # each fix touches are recorded as disjoint, by a query. With two or more entries
+    # every pair must be covered.
+    slugs = [s for s, i in data["investigations"].items() if i.get("status") == "investigated"]
+    overlaps = data.get("overlaps", [])
+    if len(slugs) >= 2:
+        if not isinstance(overlaps, list):
+            errors.append("top level: overlaps must be a list of {a, b, shared_rows, query, query_text, rows_in, rows_out}")
+        else:
+            for i, o in enumerate(overlaps):
+                ow = f"overlaps[{i}]"
+                if not isinstance(o, dict):
+                    errors.append(f"{ow}: must be an object")
+                    continue
+                if not isinstance(o.get("shared_rows"), int):
+                    errors.append(f"{ow}: shared_rows must be an integer row count")
+                errors += _figure_errors(ow, o)
+            for pair in _pairs_covered(overlaps, slugs):
+                errors.append(f"overlaps: no entry for {pair} - the rows the two fixes touch must be compared by a query "
+                              "before /synthesize may combine them")
     return errors
 
 
