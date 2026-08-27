@@ -69,7 +69,10 @@ tracked file is a table of counts by finding type.
   — to get each type's fixability adjustment.
 - Propose **one change**: the replacement Calibration table, in full, with the rows,
   counts and adjustments. Present it as a Step 3 proposal like any other, with the
-  arithmetic for each row shown (`25 × (a − r) / n`), and confirm it before writing.
+  arithmetic for each row shown exactly as the file's formula has it (at the time of
+  writing `25 × (a − r) / (n + 2)`, rounded half away from zero, capped at +10 — but the
+  file is the authority, and if it has changed, the file's formula is the one you apply),
+  and confirm it before writing.
 - Alongside the table, you may propose lines for "Lessons from past engagements" built
   from the **structured columns only** — `sector`, `size_band`, `engagement_type`,
   `finding_type`, `outcome`, and the year of `recorded_on`. *"A D2C apparel brand (under
