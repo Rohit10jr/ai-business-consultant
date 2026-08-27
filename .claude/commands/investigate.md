@@ -237,20 +237,59 @@ own arithmetic — take it out and reword around its absence. Not "roughly", not
 enforces the mechanical half: **every number with a decimal point, a `%`, `pts`, `points`
 or a currency mark in the claim or the mechanism must equal a value recorded in this entry**
 — a decomposition term, a hypothesis result or size, an evidence figure, a re-derived
-figure, an allocation half, or `recoverable_at_most` — at the precision written. A number
-that matches nothing in the record is a number from nowhere.
+figure, an allocation half, `recoverable_at_most`, or a term of
+`baseline_movement_at_most` — at the precision written. A number that matches nothing in
+the record is a number from nowhere.
 
-## Step 6: Size the established part in the baseline's unit
+## Step 6: Size the established part — in rupees, then as a movement of the baseline
 
-`recoverable_at_most` is the size of the **established portion only** — the named cause's own
-rate effect, not the finding's whole magnitude — expressed in the baseline's unit by a query
-like every other figure (a cost delta over the same period ÷ the baseline's denominator),
-and recorded as a full figure: value, unit, period, query, query text, row counts. Where an
-allocation is involved, the pair goes in `allocation_pairs` and this figure is the
-allocation-free half. Where no query can produce it, write the string
-`not derivable — <why, and what file would be needed>` and stop there. A ceiling is not a
-forecast and not a recommendation: it says what a perfect fix of this one cause could
-return, and nothing about whether to attempt one.
+Two figures, named so they cannot be confused, and never the one dressed as the other.
+
+**`recoverable_at_most` — rupees only.** The size of the **established portion only** — the
+named cause's own rate effect, not the finding's whole magnitude — as a cost or contribution
+delta over the baseline's period, computed by a query like every other figure and recorded
+as a full figure: value, a **currency** unit, period, query, query text, row counts. This is
+the figure that compares between causes and adds across them. It is never expressed in
+points of the baseline; a rupee delta divided by the baseline's frozen denominator is not a
+movement of the baseline, and the unit `pts` on this figure is a validator error.
+
+**`baseline_movement_at_most` — the baseline recomputed with the fix applied.** The
+baseline is a ratio: contribution ÷ net revenue for Acme, and something ÷ something for
+every client. Fixing a cause moves **both terms** — a return that stops happening restores
+its revenue as well as its contribution; a courier saving moves only the numerator; a
+discount that stops leaking moves both. So the movement is not the rupee figure over the old
+denominator; it is the ratio recomputed with the numerator *and* the denominator as they
+would be with the fix applied. Record it as: `numerator_from`, `numerator_to`,
+`numerator_delta`, `denominator_from`, `denominator_to`, `denominator_delta`, `from`, `to`,
+`delta`, unit (points of the baseline), period, and a query **whose printed output shows
+both the numerator and the denominator before and after** — the validator refuses a
+movement whose query records only one of them. If the denominator genuinely does not move,
+the record says so in `denominator_unchanged_because`, and the query still prints it twice.
+This is the **only** figure that may ever be stated as "pts of the baseline" or compared
+against the baseline. Where it cannot be computed, write the string
+`not derivable — <why, and what file would be needed>`; a cause with a rupee ceiling and no
+movement figure is honest, a cause quoting rupees ÷ frozen denominator as points is not.
+
+Where an allocation is involved, the pair goes in `allocation_pairs` and both figures here
+are the allocation-free half. A ceiling is not a forecast and not a recommendation: it says
+what a perfect fix of this one cause could return, and nothing about whether to attempt one.
+
+**Worked, by hand, on Acme's Supplier B cause** — the numbers `/review` derived on the
+first engagement, which the rule must reproduce or the rule is wrong:
+
+| | contribution (numerator) | net revenue (denominator) | margin |
+|---|---|---|---|
+| Q1 FY26 as recorded (`scope.md`) | ₹124,540.03 | ₹631,425.85 | 19.72% |
+| fix applied: Supplier B's excess returns stop | +₹46,121.67 (their contribution comes back, net of the goods now sold) | +₹58,370 (their line values are re-earned as revenue) | |
+| Q1 FY26 with the fix | ₹170,661.70 | ₹689,795.85 | **24.74%** |
+
+`recoverable_at_most` = ₹46,121.67. `baseline_movement_at_most` = 19.72% → 24.74%,
+**+5.02 pts**. The figure the first engagement stated — 46,121.67 ÷ 631,425.85 =
+**7.30 pts** — divided the numerator's gain by a denominator that the same fix raises by
+₹58,370, and overstated the movement by roughly a third. Every ceiling in that
+recommendation carried the same error, in the same direction. The numerator and the
+denominator move by different amounts because re-earned revenue carries its cost of goods;
+that difference is exactly what the two-term query exists to show.
 
 Anything the human would need to ask the client — a date a supplier changed a size block,
 whether a code was meant to stack — goes under `open_questions`. You contact nobody.
@@ -319,8 +358,16 @@ shape:
         {"label": "<what>", "value": 0, "unit": "<unit>", "period": "<period>",
          "query": "<path>", "query_text": "<verbatim>", "rows_in": 0, "rows_out": 0, "join": "<key, or none>"}
       ],
-      "recoverable_at_most": {"value": 0, "unit": "<the baseline's unit>", "period": "<period>",
+      "recoverable_at_most": {"value": 0, "unit": "<a currency: rupees | ₹ | ...>", "period": "<period>",
                               "query": "<path>", "query_text": "<verbatim>", "rows_in": 0, "rows_out": 0},
+      "baseline_movement_at_most": {
+        "numerator_from": 0, "numerator_to": 0, "numerator_delta": 0,
+        "denominator_from": 0, "denominator_to": 0, "denominator_delta": 0,
+        "denominator_unchanged_because": "<only when denominator_delta is 0: why the fix leaves it alone>",
+        "from": 0, "to": 0, "delta": 0, "unit": "pts of <the baseline metric>", "period": "<period>",
+        "query": "<path — its output prints numerator and denominator, before and after>",
+        "query_text": "<verbatim>", "rows_in": 0, "rows_out": 0
+      },
       "open_questions": ["<for the human to ask>"],
       "status": "investigated | blocked"
     }
@@ -332,8 +379,8 @@ shape:
 then the baseline-effect denominator is decomposed under `evidence` as Step 3 says. Only a
 `mix` candidate may carry `status: "not_applicable"`, only when `decompositions` is that
 string, and the reason goes in `needs`; `common-cause`, `measurement` and `named` are always
-tested. `recoverable_at_most` may instead be the string `"not derivable — <why, and what
-file would be needed>"`.
+tested. `recoverable_at_most` and `baseline_movement_at_most` may each instead be the
+string `"not derivable — <why, and what file would be needed>"`.
 
 `/investigate` is the only writer of this file, and this file is the only thing
 `/investigate` writes under `engagements/`. It does not edit `findings.json` — not even
@@ -358,7 +405,9 @@ Print, per finding:
 4. **Counter-hypotheses** — each with its status, result and query.
 5. **Allocation** — the dependence statement; each pair's two numbers, the rule, whether
    the conclusion changed.
-6. **The claim**, its strength, the mechanism, `recoverable_at_most`.
+6. **The claim**, its strength, the mechanism, `recoverable_at_most` in rupees, and
+   `baseline_movement_at_most` as from → to (delta), with the numerator and denominator
+   before and after.
 7. **Removed** — any figure taken out under Step 5, and why.
 8. **Open questions.**
 
@@ -396,6 +445,10 @@ Do not run it. Stop here.
    key. The same goes for `docs/`, `TASK.md`, `RUNBOOK.md` and progress files.
 7. **Investigate, do not recommend.** No options, no "should", no sequencing. `recoverable_at_most`
    is a ceiling on one cause, not advice.
+7b. **Rupees are rupees; points are a recomputed ratio.** `recoverable_at_most` carries a
+   currency unit and nothing else. The only figure in points of the baseline is
+   `baseline_movement_at_most`, whose query prints numerator and denominator before and
+   after. Rupees ÷ the frozen denominator is not a movement and is not written anywhere.
 8. **One writer.** `engagements/<client>/investigation.json`, and nothing else under
    `engagements/`. `findings.json` is read, never written.
 9. **You contact nobody.** Questions for the client go under `open_questions`.

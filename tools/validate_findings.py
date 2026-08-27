@@ -169,7 +169,15 @@ def validate(data: dict) -> list[str]:
 REQUIRED_INVESTIGATION = {"finding", "title", "investigated_on", "reverified", "claim",
                           "claim_strength", "mechanism", "preregistered_in", "decompositions",
                           "counter_hypotheses", "allocation_dependence", "allocation_pairs",
-                          "evidence", "recoverable_at_most", "open_questions", "status"}
+                          "evidence", "recoverable_at_most", "baseline_movement_at_most",
+                          "open_questions", "status"}
+# recoverable_at_most is rupees (or another currency) and nothing else. Points of the
+# baseline live only in baseline_movement_at_most, whose query shows both terms move.
+CURRENCY_MARKS = ("₹", "rs", "rupee", "inr", "$", "usd", "€", "eur", "£", "gbp")
+POINTS_MARKS = ("pt", "point", "%", "margin", "percent")
+MOVEMENT_KEYS = {"numerator_from", "numerator_to", "numerator_delta", "denominator_from",
+                 "denominator_to", "denominator_delta", "from", "to", "delta", "unit", "period"}
+RATIO_TOLERANCE = 0.011  # two-decimal points of the baseline
 CLAIM_STRENGTHS = ("established", "partial", "unsupported")
 # Every investigation must have looked at these three shapes of alternative, plus
 # the cause it is arguing for. Only `mix` may be absent, and only for a finding
@@ -254,6 +262,10 @@ def _recorded_values(inv: dict) -> list[float]:
     rec = inv.get("recoverable_at_most")
     if isinstance(rec, dict):
         add(rec.get("value"))
+    mov = inv.get("baseline_movement_at_most")
+    if isinstance(mov, dict):
+        for k in MOVEMENT_KEYS - {"unit", "period"}:
+            add(mov.get(k))
     return values
 
 
@@ -443,8 +455,49 @@ def validate_investigation(data: dict) -> list[str]:
             errors += _figure_errors(f"{where} recoverable_at_most", rec)
             if not isinstance(rec.get("value"), (int, float)):
                 errors.append(f"{where}: recoverable_at_most.value must be a number")
+            unit = str(rec.get("unit", "")).lower()
+            if any(m in unit for m in POINTS_MARKS) or not any(m in unit for m in CURRENCY_MARKS):
+                errors.append(f"{where}: recoverable_at_most.unit must be a currency, got {rec.get('unit')!r} - "
+                              "points of the baseline live only in baseline_movement_at_most")
         else:
             errors.append(f"{where}: recoverable_at_most must be a figure object or a string")
+
+        # --- the movement of the baseline: both terms, before and after
+        mov = inv["baseline_movement_at_most"]
+        mw = f"{where} baseline_movement_at_most"
+        if isinstance(mov, str):
+            if not mov.lower().startswith("not derivable"):
+                errors.append(f"{mw}: must be a movement object or 'not derivable - <why>', got {mov!r}")
+            elif not mov[13:].strip(" -—:"):
+                errors.append(f"{mw}: says 'not derivable' with no reason")
+        elif isinstance(mov, dict):
+            errors += _figure_errors(mw, mov)
+            miss = MOVEMENT_KEYS - set(mov)
+            if miss:
+                errors.append(f"{mw}: missing keys {sorted(miss)} - the query must show numerator and denominator before and after")
+            else:
+                nums = {k: mov[k] for k in MOVEMENT_KEYS - {"unit", "period"}}
+                if not all(isinstance(v, (int, float)) for v in nums.values()):
+                    errors.append(f"{mw}: every term must be a number")
+                else:
+                    n0, n1, d0, d1 = nums["numerator_from"], nums["numerator_to"], nums["denominator_from"], nums["denominator_to"]
+                    if abs((n1 - n0) - nums["numerator_delta"]) > 0.011 or abs((d1 - d0) - nums["denominator_delta"]) > 0.011:
+                        errors.append(f"{mw}: numerator_delta or denominator_delta is not to - from")
+                    if d0 == 0 or d1 == 0:
+                        errors.append(f"{mw}: a denominator is zero")
+                    else:
+                        if abs(100 * n0 / d0 - nums["from"]) > RATIO_TOLERANCE or abs(100 * n1 / d1 - nums["to"]) > RATIO_TOLERANCE:
+                            errors.append(f"{mw}: from/to are not numerator ÷ denominator × 100 - the ratio was not recomputed")
+                        if abs((nums["to"] - nums["from"]) - nums["delta"]) > RATIO_TOLERANCE:
+                            errors.append(f"{mw}: delta is not to - from")
+                    if d1 == d0 and not str(mov.get("denominator_unchanged_because", "")).strip():
+                        errors.append(f"{mw}: the denominator did not move and no denominator_unchanged_because is given - "
+                                      "a fix that restores revenue moves it; say why this one does not")
+                unit = str(mov.get("unit", "")).lower()
+                if not any(m in unit for m in ("pt", "point")):
+                    errors.append(f"{mw}: unit must be points of the baseline, got {mov.get('unit')!r}")
+        else:
+            errors.append(f"{mw}: must be a movement object or a string")
 
         # --- numbers in the claim and mechanism come from the record
         recorded = _recorded_values(inv)

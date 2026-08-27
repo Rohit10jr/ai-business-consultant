@@ -91,9 +91,18 @@ record = {
                 figure("excess returned apparel lines at the old rate, Q2 FY26", 46.0, "lines per quarter", Q2, "q02_saving", 5475, 312),
                 figure("average cost per returned apparel line Q2 FY26", 431.88, "rupees", Q2, "q02_saving", 5475, 83, join="sku -> cogs_by_sku.csv (5475 in, 5475 matched)"),
                 figure("cost of the rise at Q2 FY26 run rate", 19880.79, "rupees per quarter", Q2, "q02_saving", 5475, 83, join="sku -> cogs_by_sku.csv (5475 in, 5475 matched)"),
+                figure("cost of the rise as a share of Q2 FY26 net revenue", 2.94, "pts of net revenue", Q2, "q02_saving", 5475, 83, join="sku -> cogs_by_sku.csv (5475 in, 5475 matched)"),
             ],
-            "recoverable_at_most": figure("cost of the rise as points of net revenue", 2.94, "pts of net revenue", Q2, "q02_saving", 5475, 83,
+            "recoverable_at_most": figure("cost of the rise at Q2 FY26 run rate", 19880.79, "rupees per quarter", Q2, "q02_saving", 5475, 83,
                                           join="sku -> cogs_by_sku.csv (5475 in, 5475 matched)"),
+            # True as arithmetic, wrong as attribution: the whole rise reversed, both terms
+            # moving. The investigation claims Supplier B alone would deliver it.
+            "baseline_movement_at_most": {
+                "numerator_from": 137032.35, "numerator_to": 156913.14, "numerator_delta": 19880.79,
+                "denominator_from": 675972.70, "denominator_to": 741498.79, "denominator_delta": 65526.09,
+                "from": 20.27, "to": 21.16, "delta": 0.89, "unit": "pts of contribution margin", "period": Q2,
+                "query": f"{SCRATCH}/q02_saving.py", "query_text": q("q02_saving"), "rows_in": 5475, "rows_out": 83,
+            },
             "open_questions": ["When exactly did Supplier B change its size block, and were size charts on the store updated with it?"],
             "status": "investigated",
         }

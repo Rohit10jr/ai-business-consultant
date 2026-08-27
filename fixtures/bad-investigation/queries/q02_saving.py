@@ -52,4 +52,14 @@ print(f"cost of the rise at Q2 FY26 run rate: {saving:,.2f} rupees per quarter")
 with (CORPUS / "financials" / "pnl_monthly.csv").open(encoding="utf-8", newline="") as f:
     pnl = {r["month"]: r for r in csv.DictReader(f)}
 net_q2 = sum(float(pnl[m]["net_revenue"]) for m in sorted(Q2_FY26))
+contribution_q2 = sum(float(pnl[m]["contribution"]) for m in sorted(Q2_FY26))
 print(f"Q2 FY26 net revenue {net_q2:,.2f}; the rise costs {100*saving/net_q2:.2f} pts of net revenue")
+
+# The margin with the whole rise reversed: the excess returned lines are re-earned as
+# revenue (their line values come back) and their handling cost stops - both terms move.
+re_earned = excess * sum(float(r["line_value"]) for r in returned_q2) / len(returned_q2)
+num0, den0 = contribution_q2, net_q2
+num1, den1 = num0 + saving, den0 + re_earned
+print(f"margin with the fix: contribution {num0:,.2f} -> {num1:,.2f} (+{saving:,.2f}); "
+      f"net revenue {den0:,.2f} -> {den1:,.2f} (+{re_earned:,.2f}); "
+      f"{100*num0/den0:.2f}% -> {100*num1/den1:.2f}% ({100*num1/den1 - 100*num0/den0:+.2f} pts)")
