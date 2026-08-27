@@ -188,6 +188,7 @@ not in the table). Then:
 
 ```
 score = impact × w_impact + confidence × w_confidence + fixability_calibrated × w_fixability
+score_uncalibrated = impact × w_impact + confidence × w_confidence + fixability × w_fixability
 ```
 
 with the weights from `practice/frameworks.md` as fractions. Round to an integer. The
@@ -199,6 +200,13 @@ the `unquantified` flag cannot exceed **park** whatever its other scores; the fl
 size is unknown, and unknown does not rank above measured.
 
 Sort by score descending. Ties: the finding with the higher confidence first.
+
+Then sort a second time by `score_uncalibrated` and compare the two orderings. **Every
+difference between them is the calibration's effect and nothing else** — same agents, same
+raw scores, one run. Report it as one line: "Calibration moved: `<slug>` #a → #b (score
+x → y), …" or "Calibration moved nothing." This is how a reader — or a phase gate — tells a
+learned adjustment from the run-to-run noise of fresh scoring agents, which is why the
+uncalibrated score is recorded on every finding.
 
 Sanity check before presenting — say the result of each, in one line:
 
@@ -220,14 +228,16 @@ Add to each scored finding, and change nothing else in it:
 "rank_score": 0, "rank_verdict": "pursue | consider | park | drop",
 "rank_impact": 0, "rank_confidence": 0, "rank_fixability": 0,
 "rank_fixability_band": "...", "rank_finding_type": "<from the list>",
-"rank_calibration": 0, "rank_fixability_calibrated": 0,
+"rank_calibration": 0, "rank_fixability_calibrated": 0, "rank_score_uncalibrated": 0,
 "rank_flags": [...], "rank_rationale": [...],
 "rank_date": "YYYY-MM-DD", "status": "ranked"
 ```
 
 `rank_fixability` is the agent's raw score; `rank_calibration` the adjustment applied
-(0 when none); `rank_fixability_calibrated` the value the score used. All three are kept
-so a reader can see what the practice's memory did to the ranking.
+(0 when none); `rank_fixability_calibrated` the value the score used;
+`rank_score_uncalibrated` the score the finding would have had with no adjustment. All
+four are kept so a reader can see what the practice's memory did to the ranking, and tell
+it apart from what fresh scoring agents did.
 
 Add to each vetoed finding, and nothing else:
 
@@ -269,7 +279,7 @@ what went wrong.
 Scored <n> findings (<v> vetoed, <u> unquantified) with weights impact <w>% ·
 confidence <w>% · fixability <w>%, from practice/frameworks.md.
 
-| # | Score | Verdict | Finding | Type | Impact | Conf | Fix (raw → cal.) | Known? | Flags |
+| # | Score (uncal. → cal.) | Verdict | Finding | Type | Impact | Conf | Fix (raw → cal.) | Known? | Flags |
 |---|---|---|---|---|---|---|---|---|---|
 
 ### Why the top ones rank where they do

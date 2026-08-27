@@ -70,12 +70,17 @@ tracked file is a table of counts by finding type.
 - Propose **one change**: the replacement Calibration table, in full, with the rows,
   counts and adjustments. Present it as a Step 3 proposal like any other, with the
   arithmetic for each row shown (`25 × (a − r) / n`), and confirm it before writing.
-- Alongside the table, you may propose lines for "Lessons from past engagements" drawn
-  from the `sector`, `size_band`, `engagement_type`, `finding_type`, `outcome` and
-  `pushback` columns — generalised. *"A D2C apparel brand rejected a channel-spend
-  recommendation; the marketing lead asked for an alternative rather than a cut"* crosses.
-  The `client` column never crosses, and neither does any figure or name quoted in
-  `pushback` or `notes` that would identify the engagement.
+- Alongside the table, you may propose lines for "Lessons from past engagements" built
+  from the **structured columns only** — `sector`, `size_band`, `engagement_type`,
+  `finding_type`, `outcome`, and the year of `recorded_on`. *"A D2C apparel brand (under
+  ₹5 Cr revenue), margin diagnosis, 2026: a channel-spend recommendation was rejected"*
+  crosses. **`pushback` and `notes` never cross** — not quoted, not paraphrased, not
+  summarised. They are the client's words, they identify the engagement to anyone who was
+  in the room, and the place to read them is the tracker itself. The `client` column never
+  crosses either.
+- A row whose `notes` begins with `supersedes <recorded_on> <finding_slug>` replaces the
+  earlier row it names in the aggregation: the earlier row is excluded from the counts and
+  the correction counted once. Say which rows were superseded in the proposal.
 
 **`/setup` reads `practice/tracker.csv` and never writes it.** `/outcome` is its only
 writer. If the tracker looks wrong, say so; the fix is a new row appended by `/outcome`.
@@ -113,7 +118,10 @@ section the user did not change. Keep the "Written by `/setup` only" line at the
 each file.
 
 Before writing, re-scan the text you are about to write for anything on the Step 2
-identifying list. If something slipped through, remove it and say so.
+identifying list — and, when the tracker was read, for every value of its `client`
+column and every name, figure and quoted phrase in its `pushback` and `notes` columns,
+which join that list the moment the file is opened. If something slipped through, remove
+it and say so.
 
 ## Step 5: Report
 

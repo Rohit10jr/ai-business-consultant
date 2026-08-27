@@ -33,7 +33,9 @@ Fixability adjustments by finding type, in points, derived by `/setup frameworks
 adds the adjustment to each finding's fixability score before weighting, clamped to 0–100,
 and records what it applied.
 
-The rule, applied per finding type over every tracker row of that type:
+The rule, applied per finding type over every tracker row of that type (a row superseded
+by a later correction row — one whose `notes` begins `supersedes <recorded_on>
+<finding_slug>` — is excluded, and the correction counted once):
 
 ```
 adjustment = round(25 × (accepted − rejected) / rows), floored at −40, capped at +10

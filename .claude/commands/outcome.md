@@ -95,7 +95,9 @@ recorded_on,client,sector,size_band,engagement_type,option,finding_slug,finding_
 - `pushback` and `notes` are the human's words, quoted; no figure is added that the human
   did not say.
 - Rows are **appended**. Existing rows are never rewritten, reordered or removed; a wrong row
-  is corrected by appending a new one with `notes` saying which it supersedes.
+  is corrected by appending a new one whose `notes` begins exactly
+  `supersedes <recorded_on> <finding_slug>` naming the row it replaces; `/setup` excludes
+  the superseded row from the calibration counts. Say so when you write such a row.
 
 Use the standard library `csv` writer so commas and quotes in the human's words are escaped
 properly. After writing, re-read the file and show the row count before and after.
