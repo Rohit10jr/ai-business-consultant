@@ -210,6 +210,46 @@ class RankTests(unittest.TestCase):
     def test_triage_depth_only(self):
         self.assertIn("No corpus reads, no new queries, no research.", self.text)
 
+    def test_calibration_is_applied_from_the_file_and_recorded(self):
+        self.assertIn("**Finding types** list and the **Calibration** table", self.text)
+        self.assertIn("fixability_calibrated = clamp(fixability + adjustment[finding_type], 0, 100)", self.text)
+        self.assertIn("never by the scoring\nagents, and never from your own sense of what a finding type deserves", self.text)
+        for key in ("rank_finding_type", "rank_calibration", "rank_fixability_calibrated", "rank_score_uncalibrated"):
+            self.assertIn(key, self.text)
+        # The calibration's effect must be provable within one run, not across two.
+        self.assertIn("**Every\ndifference between them is the calibration's effect and nothing else**", self.text)
+        self.assertIn("score_uncalibrated = impact × w_impact + confidence × w_confidence + fixability × w_fixability", self.text)
+        self.assertIn('"finding_type": "<one entry from the Finding types list, verbatim>"', self.text)
+
+
+class OutcomeTests(unittest.TestCase):
+    def setUp(self):
+        self.text = read("outcome.md")
+
+    def test_records_never_interprets_and_never_edits_the_profile(self):
+        self.assertIn("**This command never edits `practice/domains.md` or `practice/frameworks.md`**", self.text)
+        self.assertIn("**Record, never interpret.**", self.text)
+        self.assertIn("`/outcome` is the only writer of `practice/tracker.csv`", self.text)
+
+    def test_append_only_and_every_row_confirmed(self):
+        self.assertIn("**One writer, append only.**", self.text)
+        self.assertIn("Rows are **appended**. Existing rows are never rewritten", self.text)
+        self.assertIn("**If the user says no, the row is not written**", self.text)
+        self.assertIn("**If the user says skip, no row is\n   written for it**", self.text)
+        self.assertIn('Never\nbatch "write all"', self.text)
+
+    def test_taxonomy_from_frameworks_and_client_name_stops_here(self):
+        self.assertIn("**Finding types come from `practice/frameworks.md`.**", self.text)
+        self.assertIn("**The client name stops here.**", self.text)
+        self.assertIn("recorded_on,client,sector,size_band,engagement_type,option,finding_slug,finding_type,claim_strength,outcome,pushback,notes", self.text)
+
+    def test_does_not_chain(self):
+        self.assertIn("Do not run either. Stop here.", self.text)
+        self.assertIn("never `fixtures/*/EXPECTED.md`", self.text)
+
+    def test_correction_rows_carry_the_supersedes_marker(self):
+        self.assertIn("`supersedes <recorded_on> <finding_slug>`", self.text)
+
 
 class InvestigateTests(unittest.TestCase):
     def setUp(self):
@@ -372,8 +412,17 @@ class SetupTests(unittest.TestCase):
     def test_writes_only_the_two_tracked_files(self):
         self.assertIn("`practice/domains.md`", self.text)
         self.assertIn("`practice/frameworks.md`", self.text)
-        self.assertIn("never reads or writes `practice/tracker.csv`", self.text)
+        self.assertIn("**`/setup` reads `practice/tracker.csv` and never writes it.**", self.text)
         self.assertIn("never touches `engagements/`", self.text)
+
+    def test_phase_one_deferral_is_gone_and_the_crossing_is_drawn(self):
+        # Phase 5: the deferral sentence phase 1 left is deleted, not softened.
+        self.assertNotIn("is a later phase's concern", self.text)
+        self.assertNotIn("never reads or writes `practice/tracker.csv`", self.text)
+        self.assertIn("## Step 2b: Calibration from the tracker", self.text)
+        self.assertRegex(self.text, r"The `client` column never\s+crosses")
+        self.assertIn("read the rule from the file; do not recompute it from memory", self.text)
+        self.assertIn("never from your own judgement of what a\nfinding type deserves", self.text)
 
     def test_client_identifiers_are_forbidden_in_tracked_files(self):
         self.assertIn("must never contain a client name", self.text)
@@ -381,6 +430,17 @@ class SetupTests(unittest.TestCase):
     def test_each_change_confirmed_and_no_is_terminal_for_it(self):
         self.assertIn("**If the user says no, skip that change", self.text)
         self.assertIn("one at a time", self.text)
+
+    def test_tracker_crossing_is_structured_columns_only(self):
+        # Review blocker: free-text pushback must never reach the tracked profile.
+        self.assertIn("**structured columns only**", self.text)
+        self.assertIn("**`pushback` and `notes` never cross**", self.text)
+        self.assertIn("not quoted, not paraphrased, not\n  summarised", self.text)
+        self.assertIn("**`/setup` reads `practice/tracker.csv` and never writes it.**", self.text)
+        self.assertNotIn("is a later phase's concern", self.text)
+        # The re-scan covers the tracker's own text, not only the documents' identifiers.
+        self.assertIn("every value of its `client`\ncolumn and every name, figure and quoted phrase", self.text)
+        self.assertIn("`supersedes <recorded_on> <finding_slug>`", self.text)
 
 
 if __name__ == "__main__":

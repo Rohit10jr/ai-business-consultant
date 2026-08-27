@@ -188,3 +188,176 @@ rubric row it cited.
    be worth pulling forward once `/investigate` exists.
 4. **Re-run `/discover acme` on the final command file** if the phase-3 agent wants a
    clean baseline; the fresh-subagent pattern in `PROGRESS_PHASE_2.md` is reusable.
+
+---
+
+# Run report — phases 3–5 and the engagement, run of 2026-08-26/27
+
+Appended below the phase 0–2 reports, which stand as written. Three branches, each cut
+from the previous one's completed tip: `phase-3-investigate` (from `main` at `72fb49a`),
+`phase-4-synthesize`, `phase-5-outcome`. Nothing merged to `main`.
+
+## Status at a glance
+
+| Phase | Branch | State | Gate |
+|---|---|---|---|
+| 3 | `phase-3-investigate` | **PASS** | 129 tests · guard re-proved · tier-1 Codex review, 7 findings applied · own gate 6/6 on a fresh-context run · 3 commits pushed |
+| 4 | `phase-4-synthesize` | **PASS** | 158 tests · guard re-proved · tier-1 Codex review, 5 findings applied (1 blocker) · own gate 4/4 on fresh-context runs · 4 commits pushed |
+| 5 | `phase-5-outcome` | **PASS** | 166 tests · guard re-proved · tier-1 Codex review, 4 findings (2 blockers applied, 1 disagreed with) · own gate 4/4 on fresh-context runs, the calibration's effect proved within one run · 3 commits pushed |
+
+Details in `PROGRESS_PHASE_3.md`, `PROGRESS_PHASE_4.md`, `PROGRESS_PHASE_5.md`.
+
+## What shipped
+
+`/investigate` with the counter-hypothesis rule made mechanical (`validate_investigation`);
+`/synthesize` with a checker that evaluates every figure and every ceiling in the
+recommendation; `/review` as a fresh-context adversary judged on numbers; the deliberately
+bad investigation for it to kill; `/outcome`; and the calibration loop through
+`/setup frameworks` into `/rank`.
+
+## What each gate showed
+
+- **Phase 3.** The fresh `/investigate` run decomposed the return finding by supplier *and*
+  category, named Supplier A's own rise in the claim (+1.34 of +8.89 pts on the finding's
+  basis; +3.04 of +14.75 on the answer key's), separated interaction (+2.22) from pure mix
+  (+0.08), paired every allocated figure, pre-registered fifteen kill criteria and decided
+  each by a query, and left one claim honestly `partial`.
+- **Phase 4.** `/synthesize` produced three options with every ceiling traced to
+  `recoverable_at_most`. `/review` on the bad investigation returned **killed**, naming
+  Supplier A's +3.04 points, reproducing it, tabling all 18 export columns, and recomputing
+  the ceiling (1.97 pts, not 2.94). A first run of the same review had found the same
+  numbers and said the claim "is false by 2.85 pts" but labelled it *wounded* under a
+  looser verdict definition; the definition was tightened and the run repeated.
+- **Phase 5.** Four fresh runs in sequence: `/rank acme --all` (calibration table empty),
+  `/outcome acme` recording the Meta recommendation **rejected** (the marketing lead's
+  objection, the founder siding with her) and the Supplier B one accepted, `/setup
+  frameworks` writing `channel-spend −25` and `supplier +10` into the tracked profile with
+  nothing client-identifying crossing, and `/rank acme --all` again: `google-cac-flat` —
+  the *next* channel-spend finding, not the rejected one — fell from #1/80/pursue to
+  #2/72/consider, and the courier finding took first. The practice learned about a kind of
+  recommendation. Both orderings and the diff are in `PROGRESS_PHASE_5.md`.
+
+## What did not work, honestly
+
+- **Session limits interrupted five subagent runs** across the three phases (one
+  `/investigate`, two `/review`, one `/rank`, at various points). Three were resumed with
+  their context intact; two were restarted from nothing. No output from an aborted attempt
+  was graded.
+- **The reviewer that "wounded" instead of "killed"** was the command's ambiguity, not the
+  reviewer's: my verdict definitions let "survives smaller" cover a claim whose headline
+  figure was false. Fixed in `44a52ad`; the graded run is on the fixed file.
+- **My graders were wrong twice** before the runs were: the phase-3 grader demanded the
+  answer key's 3.04 when the run had legitimately decomposed on the finding's own basis,
+  and it matched the run's *"Not read:"* line as a forbidden read. Both corrected; both
+  recorded in `PROGRESS_PHASE_3.md`.
+- **`/investigate` and `/review` are expensive** — 25–30 minutes and 150–300k subagent
+  tokens each. The runbook's "hours, not one" was right.
+- **The pipeline was run stage by stage as each phase's gate**, on the same engagement in
+  order, not in one sitting after phase 5. The chain is complete and each stage read only
+  the previous stage's output; a single-sitting re-run would cost another several hours and
+  is the first thing to do if anyone wants to see the commands run cold.
+
+## What the next runbook should cover
+
+1. **A second corpus.** Everything above is validated on one company designed to contain
+   the answers we wanted found. `BUILD_PLAN.md` §7 lists the candidates.
+2. **The unit of the ceiling.** The real-case review's sharpest point: `recoverable_at_most`
+   in "pts of net revenue" is rupees over a static denominator, and a margin moves
+   differently when re-earned returns lift revenue too (7.30 → +5.02 pts of margin). Decide
+   whether `/investigate` should record both.
+3. **Restocking and write-down conventions** decide the sign of the Supplier B segment
+   before marketing. The corpus cannot settle it; a real engagement would ask.
+4. **Cost control for `/review`**: the reviewer re-derives everything; a cheaper first pass
+   that only decomposes by every field would catch most omissions.
+
+---
+
+# The engagement — Acme
+
+*This is the deliverable: what the harness produced, end to end, on the synthetic client.*
+
+## The question
+
+> Which customer, product or channel segments no longer cover their own variable cost, and
+> which of them should Acme stop serving or serve differently?
+
+**Baseline:** 19.7% contribution margin, Q1 FY26 (Jan–Mar 2026, inclusive) — computed by
+`/scope` from `financials/pnl_monthly.csv` three ways after refusing the 19% the brief and
+the CFO both offered, because a round number said in conversation is not a source.
+Out of scope: list prices, the fundraise.
+
+## What `/discover` found, and what `/rank` put first
+
+Eleven findings from twelve files and 5,475 de-duplicated order lines. `/rank` vetoed the
+one that restated the baseline (the margin bridge — the question, not an answer) and put
+first, by score: Meta cost per new customer doubled (80), the return rate doubled (79),
+Google CAC flat while Meta's doubled (79), courier base rates +6% / +7% / +7.5% every
+January (76), and — the highest-impact finding the client did **not** already know —
+Supplier B's segment below its own variable cost (74).
+
+## What `/investigate` established — sized in the baseline's unit
+
+| Cause | Strength | What the data says | Ceiling |
+|---|---|---|---|
+| **Supplier B's three SKUs no longer cover their variable cost, because their size block changed** | established | Supplier B's own return rate 11.36% → 60.47% of its orders (Q3 2024 → Q1 FY26), 77% coded sizing, on all three SKUs; the segment went from ₹15,384 of contribution to −₹12,762 before marketing (−₹21,752 after). The client did not know this | 7.30 pts of Q1 FY26 net revenue (₹46,122) |
+| The doubling of the return rate is the same cause, seen wider | established | Supplier B's own rise accounts for 5.66 of the 8.89 points; **Supplier A's own rise for 1.34**, the interaction of B's growing share with its worsening rate for 2.22, pure mix 0.08 — nothing unexplained | 5.21 pts — never added to the row above |
+| Meta's cost per new customer nearly doubled, and the rise is Meta-specific | **partial** | ₹352 → ₹666 per new customer; Google and Email fell. What the corpus cannot decide: Meta spend was scaled 2.6× while new Meta customers rose 1.3×, and no month since July 2025 has spent at 2024 levels — so the rise may be Acme's own scaling | up to 2.14 pts (₹13,537) |
+
+## The recommendation (`/synthesize`)
+
+**Option B — fix Supplier B's sizing at the source and, in the same month, hold Meta at its
+2024 spend for one month to learn whether its cost per new customer follows.** Ceiling up to
+9.45 pts of Q1 FY26 contribution margin (7.30 established + up to 2.14 partial), against a
+19.7% baseline.
+
+| Option | Ceiling | Effort | Wrong if |
+|---|---|---|---|
+| A — fix Supplier B's sizing, nothing else (do-less) | 7.30 pts | medium | the 40%-of-cost write-down is a booking convention and returned garments are restocked — then the ceiling is 5.34 pts |
+| **B — A, plus hold Meta at 2024 spend for one month** | up to 9.45 pts | medium | as A; and if the Meta rise is Acme's own scaling, the hold returns nothing and costs a month of growth |
+| C — pull Supplier B's three SKUs now | at most the segment's recorded loss | easy | under the pickup-only convention the segment earns ₹2,404 before marketing and exit throws away the product's Q3 2024 contribution of ₹15,384 |
+
+**First:** two questions to ops and finance before any option is chosen — the date(s)
+Supplier B changed its size block, and whether returned Supplier B garments are restocked
+or written off. The second decides between repairing the segment and pulling it.
+
+## What `/review` attacked, and whether it survived
+
+A fresh reviewer, given the case inline and only the corpus to read, re-derived every
+figure and decomposed every rate by all eighteen export columns. No cause was killed:
+
+- **Supplier B — wounded.** The segment is negative under both allocations and is the only
+  such segment; but the 7.30-pt ceiling is rupees over a static denominator — as a
+  movement of the margin it is **+5.02 pts (19.72% → 24.74%)**, because re-earned returns
+  lift net revenue too; sizing-coded returns alone give ₹32,938 (5.22 pts); and the rise's
+  first step is Q4 2024, before the window the mechanism names. Reproduced by the main
+  context.
+- **Return rate — survives; ceiling wounded** on the same denominator point (+3.67 pts of
+  margin, not 5.21).
+- **Meta — survives; partial stands.** Marginal CAC ₹1,763 per extra new customer against
+  ₹720–988 of twelve-month contribution per Meta-acquired customer: the one-month hold is
+  right under either hypothesis, and the recommendation *understates* its floor.
+- **Its sharpest point:** in margin terms, Option C's exit reaches 23.6–25.2%, so the
+  argument for repairing the segment over exiting it holds in rupees but not in margin
+  points. Nothing was applied; the human decides.
+
+## What the founder is asked to decide
+
+1. **Answer two questions first** — when Supplier B's size block changed, and whether its
+   returns are restocked. Both are in ops' and finance's hands, not in the data.
+2. **Repair or exit Supplier B's segment.** Repair (Option A/B) is worth up to +5.0 pts of
+   margin if the write-down is real, +3.7 if garments are restocked; exit (Option C) reaches
+   a similar margin faster by giving up ₹15,384 a quarter of product that was profitable
+   eighteen months ago. The choice turns on the restocking answer.
+3. **Whether to test Meta at 2024 spend for one month.** The evidence says its cost per new
+   customer is Meta-specific but cannot separate Meta's auction from Acme's own scaling; the
+   hold settles that at the cost of one month's growth. *Recorded outcome (`/outcome`):
+   rejected — "Don't tell me to cut Meta. Tell me what to do instead." The founder sided
+   with the marketing lead; the hold was read as a cut in the run-up to the October sale.
+   The practice recorded it, and the next channel-spend finding ranks lower for it.*
+4. **What is not on the table:** list prices and the fundraise, as the brief asked; and the
+   warehouse, headcount and courier findings, which are real but below contribution or
+   outside a variable-cost question.
+
+Every figure above traces to a query executed in the run that produced it, recorded in
+`engagements/acme/{findings,investigation}.json` and `recommendation.md` with the script
+text embedded.
