@@ -54,6 +54,21 @@ def decomposition(**kw):
     return d
 
 
+def movement(**kw):
+    # Acme's Supplier B cause, by hand: contribution 124,540.03 -> 170,661.70 while net
+    # revenue 631,425.85 -> 689,795.85; the margin moves 19.72 -> 24.74, +5.02 pts.
+    m = {"numerator_from": 124540.03, "numerator_to": 170661.70, "numerator_delta": 46121.67,
+         "denominator_from": 631425.85, "denominator_to": 689795.85, "denominator_delta": 58370.00,
+         "from": 19.72, "to": 24.74, "delta": 5.02, "unit": "pts of contribution margin",
+         "period": "Q1 FY26 (Jan-Mar 2026, inclusive)",
+         "query": "scratch/acme/investigate/s/q06_movement.py", "query_text": "import csv\n...",
+         "query_output": ("contribution 124,540.03 -> 170,661.70 (+46,121.67); "
+                          "net revenue 631,425.85 -> 689,795.85 (+58,370.00); 19.72% -> 24.74% (+5.02 pts)"),
+         "rows_in": 5475, "rows_out": 3}
+    m.update(kw)
+    return m
+
+
 def good() -> dict:
     return {
         "client": "acme", "scope_question": "q", "baseline": "b",
@@ -74,7 +89,8 @@ def good() -> dict:
                 "allocation_dependence": "none - return_handling is recorded per line in orders_export.csv (returned, line_value) and cogs_by_sku.csv (unit_cost_2023); no shared cost is spread",
                 "allocation_pairs": [],
                 "evidence": [fig("Supplier B return rate Q2 FY26", 59.0), fig("Supplier A return rate Q2 FY26", 15.8)],
-                "recoverable_at_most": fig("ceiling", 4.1, unit="pts of contribution margin", query="scratch/acme/investigate/s/q05.py"),
+                "recoverable_at_most": fig("ceiling", 46121.67, unit="rupees", query="scratch/acme/investigate/s/q05.py"),
+                "baseline_movement_at_most": movement(),
                 "open_questions": [],
                 "status": "investigated",
             }
@@ -273,6 +289,83 @@ class ValidateInvestigationTests(unittest.TestCase):
         one(d)["mechanism"] = "Returns cost 438.59 rupees each, from the ops interview."
         errors = v.validate_investigation(d)
         self.assertTrue(any("mechanism contains '438.59'" in e for e in errors), errors)
+
+    def test_recoverable_at_most_must_be_a_currency(self):
+        # Phase 6 fix 1: rupees over a frozen denominator is not a movement of the baseline.
+        d = good()
+        one(d)["recoverable_at_most"]["unit"] = "pts of net revenue"
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("must be a currency" in e for e in errors), errors)
+        one(d)["recoverable_at_most"]["unit"] = "₹ per quarter"
+        self.assertEqual(v.validate_investigation(d), [])
+
+    def test_movement_needs_both_terms_before_and_after(self):
+        d = good()
+        del one(d)["baseline_movement_at_most"]["denominator_to"]
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("numerator and denominator before and after" in e for e in errors), errors)
+
+    def test_movement_ratio_is_recomputed_not_copied(self):
+        # A "movement" that is rupees ÷ the frozen denominator: 46,121.67 / 631,425.85 = 7.30.
+        d = good()
+        one(d)["baseline_movement_at_most"].update(to=27.02, delta=7.30)  # 170,661.70 / 689,795.85 is 24.74
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("not numerator ÷ denominator" in e for e in errors), errors)
+
+    def test_unmoved_denominator_needs_a_reason(self):
+        d = good()
+        one(d)["baseline_movement_at_most"].update(
+            denominator_to=631425.85, denominator_delta=0.0, to=27.03, delta=7.31,  # 170661.70 / 631425.85
+            query_output="contribution 124,540.03 -> 170,661.70; net revenue 631,425.85 -> 631,425.85; 19.72% -> 27.03%")
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("denominator_unchanged_because" in e for e in errors), errors)
+        one(d)["baseline_movement_at_most"]["denominator_unchanged_because"] = "a courier saving moves cost, not revenue"
+        self.assertEqual(v.validate_investigation(d), [])
+
+    def test_movement_terms_must_appear_in_the_query_output(self):
+        # Review finding: a term typed into the JSON, not printed by the query.
+        d = good()
+        one(d)["baseline_movement_at_most"]["query_output"] = "contribution 124,540.03 -> 170,661.70; 19.72% -> 24.74%"
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("denominator_from" in e and "does not appear in query_output" in e for e in errors), errors)
+        one(d)["baseline_movement_at_most"]["query_output"] = ""
+        self.assertTrue(any("query_output is empty" in e for e in v.validate_investigation(d)))
+
+    def test_points_of_the_baseline_are_banned_on_other_figures(self):
+        # Review finding: the frozen-denominator figure recorded as evidence with a label.
+        d = good()
+        one(d)["evidence"].append(fig("frozen ceiling", 7.30, unit="pts of contribution margin"))
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("claims points of the baseline" in e for e in errors), errors)
+        one(d)["evidence"][-1]["unit"] = "pts of return rate"  # a decomposition term is fine
+        self.assertEqual(v.validate_investigation(d), [])
+
+    def test_two_causes_need_their_overlap_recorded(self):
+        d = good()
+        second = dict(one(d), finding="meta", title="Meta")
+        d["investigations"]["meta"] = second
+        errors = v.validate_investigation(d)
+        self.assertTrue(any("no entry for" in e and "return-rate-doubled / meta" in e for e in errors), errors)
+        d["overlaps"] = [{"a": "return-rate-doubled", "b": "meta", "shared_rows": 0,
+                          "query": "scratch/acme/investigate/overlap.py", "query_text": "import csv\n...",
+                          "rows_in": 5475, "rows_out": 0}]
+        self.assertEqual(v.validate_investigation(d), [])
+        d["overlaps"][0]["shared_rows"] = "none"
+        self.assertTrue(any("shared_rows must be an integer" in e for e in v.validate_investigation(d)))
+
+    def test_movement_may_be_not_derivable_with_a_reason(self):
+        d = good()
+        one(d)["baseline_movement_at_most"] = "not derivable"
+        self.assertTrue(any("no reason" in e for e in v.validate_investigation(d)))
+        one(d)["baseline_movement_at_most"] = "not derivable - the corpus has no line values for the returned orders"
+        self.assertEqual(v.validate_investigation(d), [])
+
+    def test_hand_worked_supplier_b_example_passes(self):
+        # The command file's worked example must satisfy the validator it describes.
+        self.assertEqual(v.validate_investigation(good()), [])
+        m = movement()
+        self.assertAlmostEqual(100 * m["numerator_to"] / m["denominator_to"], 24.74, places=2)
+        self.assertAlmostEqual(100 * m["numerator_from"] / m["denominator_from"], 19.72, places=2)
 
     def test_cli_detects_the_record_kind(self):
         self.assertIn("investigations", v.main.__code__.co_consts)

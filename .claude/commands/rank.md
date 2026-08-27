@@ -201,10 +201,14 @@ size is unknown, and unknown does not rank above measured.
 
 Sort by score descending. Ties: the finding with the higher confidence first.
 
-Then sort a second time by `score_uncalibrated` and compare the two orderings. **Every
-difference between them is the calibration's effect and nothing else** — same agents, same
-raw scores, one run. Report it as one line: "Calibration moved: `<slug>` #a → #b (score
-x → y), …" or "Calibration moved nothing." This is how a reader — or a phase gate — tells a
+Then sort a second time by `score_uncalibrated`, assign each finding the verdict band its
+uncalibrated score would have earned, and compare both the orderings and the verdicts.
+**Every difference between them is the calibration's effect and nothing else** — same
+agents, same raw scores, one run. Report it as one line naming every finding whose
+position **or verdict band** changed: "Calibration moved: `<slug>` #a → #b (score x → y,
+verdict p → q), …" or "Calibration moved nothing." A finding that kept its position but
+crossed from `consider` to `pursue` is on that line; a line that reports only positions
+would let a band change pass in silence. This is how a reader — or a phase gate — tells a
 learned adjustment from the run-to-run noise of fresh scoring agents, which is why the
 uncalibrated score is recorded on every finding.
 

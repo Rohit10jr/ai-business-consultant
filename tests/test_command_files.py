@@ -154,6 +154,25 @@ class DiscoverTests(unittest.TestCase):
         self.assertIn("A fabricated\n   magnitude is worse than an absent one", self.text)
         self.assertNotIn("docs/CONSULTING_METHOD.md", self.text)
 
+    def test_ceiling_is_rupees_and_movement_is_a_recomputed_ratio(self):
+        # Phase 6 fix 1 lives in investigate.md; rupees over a frozen denominator is not
+        # a movement of the baseline.
+        text = read("investigate.md")
+        self.assertIn("**`recoverable_at_most` — rupees only.**", text)
+        self.assertIn("**`baseline_movement_at_most` — the baseline recomputed with the fix applied.**", text)
+        self.assertRegex(text, r"a query \*\*whose printed output shows\s+both the numerator and the denominator before and after\*\*")
+        self.assertIn("`denominator_unchanged_because`", text)
+        self.assertIn("**Rupees are rupees; points are a recomputed ratio.**", text)
+        # The worked example reaches the figure /review derived independently.
+        self.assertIn("**Worked, by hand, on Acme's Supplier B cause**", text)
+        self.assertIn("₹170,661.70 | ₹689,795.85 | **24.74%**", text)
+        self.assertIn("**+5.02 pts**", text)
+        self.assertIn("**7.30 pts** — divided the numerator's gain by a denominator that the same fix raises", text)
+        # The query's printed output is part of the record, and overlap is measured.
+        self.assertIn("`query_output`", text)
+        self.assertIn("**When two or more causes are investigated in one run, measure their overlap.**", text)
+        self.assertIn("`shared_rows: 0`", text)
+
     def test_subagent_prompts_carry_the_whitelist(self):
         self.assertIn("do-not-read list from Step 0 verbatim", self.text)
         self.assertIn("**Re-run every returned query yourself before accepting the figure.**", self.text)
@@ -217,7 +236,9 @@ class RankTests(unittest.TestCase):
         for key in ("rank_finding_type", "rank_calibration", "rank_fixability_calibrated", "rank_score_uncalibrated"):
             self.assertIn(key, self.text)
         # The calibration's effect must be provable within one run, not across two.
-        self.assertIn("**Every\ndifference between them is the calibration's effect and nothing else**", self.text)
+        self.assertIn("**Every difference between them is the calibration's effect and nothing else**", self.text)
+        # A band crossing with no position change is still reported.
+        self.assertIn("position **or verdict band** changed", self.text)
         self.assertIn("score_uncalibrated = impact × w_impact + confidence × w_confidence + fixability × w_fixability", self.text)
         self.assertIn('"finding_type": "<one entry from the Finding types list, verbatim>"', self.text)
 
@@ -338,12 +359,25 @@ class SynthesizeTests(unittest.TestCase):
         self.assertIn("## Arithmetic", self.text)
 
     def test_ceilings_and_strengths_bound_the_recommendation(self):
-        self.assertIn("**`recoverable_at_most` is a ceiling, and the only size a cause has.**", self.text)
-        self.assertIn("**No ceiling exceeds its investigation ceiling.**", self.text)
+        self.assertIn("**`recoverable_at_most` is a ceiling in rupees, and the only size a cause has.**", self.text)
+        self.assertIn("**No ceiling exceeds its investigation ceiling, and ceilings are rupees.**", self.text)
         self.assertIn("A\n   finding's magnitude is in the investigation too, and it is not a ceiling.", self.text)
         self.assertIn("**No cause is recommended on beyond its strength.**", self.text)
         self.assertIn("**Costs are not invented.**", self.text)
         self.assertIn("**Out of scope stays out.**", self.text)
+
+    def test_ceilings_are_rupees_and_movements_are_never_added(self):
+        # Phase 6 fix 1, second-order: two movements are ratios against a denominator each
+        # fix also moves, so an option recomputes jointly rather than adding.
+        self.assertIn("**`recoverable_at_most` is a ceiling in rupees, and the only size a cause has.**", self.text)
+        self.assertIn("**`baseline_movement_at_most` is the only figure that may be stated in points of the\n  baseline.**", self.text)
+        self.assertIn("**recomputed jointly, never added**", self.text)
+        self.assertIn("`to = 100 × (n₀ + Δn₁ + Δn₂) / (d₀ + Δd₁ + Δd₂)`", self.text)
+        self.assertIn("Two movement figures are never added", self.text)
+        self.assertIn("**Two causes may be\n  combined only if their pair is recorded with `shared_rows: 0`.**", self.text)
+        self.assertIn("2b. **Movements are recomputed, never added.**", self.text)
+        self.assertIn("- Movement: <from>% → <to>% (<delta> pts)", self.text)
+        self.assertIn("rupees, never points", self.text)
 
     def test_options_trade_different_things_and_include_do_less(self):
         self.assertIn("Two or three options", self.text)

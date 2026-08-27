@@ -163,6 +163,23 @@ Full reasoning in `TASK.md`. In short:
 | 4 | `/setup` still reads the rule from the file; `/outcome` still writes only `tracker.csv` |
 | 5 | Nothing client-identifying crosses into tracked `frameworks.md` — the phase 5 rule holds |
 
+**The calibration gate, standing (rewritten in phase 6, before the formula changed).** It
+replaces phase 5's *"a recorded rejection must visibly change the next ranking"*, which
+dictated a rule tuned to swing on one data point. The loop passes when the mechanism is
+shown, not when a swing is forced:
+
+| # | Must |
+|---|---|
+| a | `/rank` records `rank_score_uncalibrated` beside `rank_score` and prints "Calibration moved: …" from one run — same agents, same raw scores — so the effect is separable from scoring noise |
+| b | `frameworks.md` carries the formula and, beside it, the argued strength: what one row does, what five do, why that is right for a practice that has just started |
+| c | `frameworks.md` tabulates the adjustment at n = 1, 2, 5 and a mixed case — the curve, not a point |
+| d | Whether a single row may move a finding across a verdict band is stated either way, with reasoning |
+| e | `/setup` reads the rule from the file, never from memory; `/outcome` writes only `tracker.csv`; nothing client-identifying crosses |
+
+Whether the order moved after one rejection is **reported, not demanded**. Under the
+recorded rule it may or may not; either is the rule's stated behaviour, and the loop has
+closed as long as the adjustment is recorded, visible, and grows with evidence.
+
 **Grade every one of these in a session that has not read the answer key.** `TASK.md`
 §"Grading without cheating" has the procedure. If you cannot arrange it, mark the gate
 **unverified** rather than grading your own run.
