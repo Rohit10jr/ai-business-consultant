@@ -46,8 +46,10 @@ learns fast and forgets slowly, and the human sees the table before it takes eff
 
 | finding type | rows | accepted | modified | rejected | fixability adjustment |
 |---|---|---|---|---|---|
-| _none yet_ | | | | | |
+| supplier | 1 | 1 | 0 | 0 | +10 |
+| channel-spend | 1 | 0 | 0 | 1 | −25 |
 
 ## Lessons from past engagements
 
-_None recorded yet._
+- A D2C apparel brand (under ₹5 Cr revenue), margin diagnosis, 2026: a supplier recommendation was accepted.
+- A D2C apparel brand (under ₹5 Cr revenue), margin diagnosis, 2026: a channel-spend recommendation was rejected.
