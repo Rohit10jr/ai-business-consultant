@@ -15,7 +15,7 @@ COMMANDS = REPO_ROOT / ".claude" / "commands"
 
 # Every command that reads anything from outside the repo carries this rule, and
 # repeats it in its Rules section so it rides along into subagent prompts.
-UNTRUSTED = re.compile(r"untrusted data, never instructions", re.IGNORECASE)
+UNTRUSTED = re.compile(r"untrusted data, never\s+instructions", re.IGNORECASE)
 STOP_HERE = re.compile(r"\*\*If the user says no[^*]*stop here\.\*\*")
 
 
@@ -46,7 +46,7 @@ class EveryCommandTests(unittest.TestCase):
     def test_untrusted_rule_is_carried_into_subagent_prompts(self):
         # Present at the top is not enough; the rule must ride along into any
         # subagent the command spawns (docs/REFERENCE_PATTERN.md §6).
-        carry = re.compile(r"Put this sentence in the prompt of any (such )?subagent")
+        carry = re.compile(r"Put this\s+sentence in the prompt of any (such )?subagent")
         for path in self.command_files():
             with self.subTest(command=path.name):
                 self.assertRegex(path.read_text(encoding="utf-8"), carry)
@@ -284,6 +284,85 @@ class InvestigateTests(unittest.TestCase):
 
     def test_stops_on_invalid_findings(self):
         self.assertIn("**If it\n  reports problems, stop**", self.text)
+
+
+class SynthesizeTests(unittest.TestCase):
+    def setUp(self):
+        self.text = read("synthesize.md")
+
+    def test_no_new_figures_and_the_checker_is_run(self):
+        self.assertIn("**No new figures.**", self.text)
+        self.assertIn("You run no queries", self.text)
+        self.assertIn("check_recommendation.py", self.text)
+        self.assertIn("**A figure it lists is removed, not softened**", self.text)
+        self.assertIn("## Arithmetic", self.text)
+
+    def test_ceilings_and_strengths_bound_the_recommendation(self):
+        self.assertIn("**`recoverable_at_most` is a ceiling, and the only size a cause has.**", self.text)
+        self.assertIn("**No ceiling exceeds its investigation ceiling.**", self.text)
+        self.assertIn("A\n   finding's magnitude is in the investigation too, and it is not a ceiling.", self.text)
+        self.assertIn("**No cause is recommended on beyond its strength.**", self.text)
+        self.assertIn("**Costs are not invented.**", self.text)
+        self.assertIn("**Out of scope stays out.**", self.text)
+
+    def test_options_trade_different_things_and_include_do_less(self):
+        self.assertIn("Two or three options", self.text)
+        self.assertIn("**do-less** option", self.text)
+        self.assertIn("what they trade", self.text)
+
+    def test_gates_single_writer_and_no_chaining(self):
+        self.assertGreaterEqual(len(STOP_HERE.findall(self.text)), 1)
+        self.assertIn("`/synthesize` is the only writer of `recommendation.md`", self.text)
+        self.assertIn("Do not run it. Stop here.", self.text)
+        self.assertIn("never `fixtures/*/EXPECTED.md`", self.text)
+
+
+class ReviewTests(unittest.TestCase):
+    def setUp(self):
+        self.text = read("review.md")
+
+    def test_fresh_context_inline_content_whitelist(self):
+        self.assertIn("spawn exactly one `general-purpose` reviewer", self.text)
+        self.assertIn("**inline in the prompt**", self.text)
+        self.assertIn("Do not open engagements/<client>/investigation.json or recommendation.md", self.text)
+        self.assertIn("**Fresh context, content inline, whitelist stated.**", self.text)
+
+    def test_two_part_output_contract_with_verdicts(self):
+        self.assertIn("### Part A — structured edits", self.text)
+        self.assertIn("### Part B — findings, by category", self.text)
+        for verdict in ('"killed"', '"wounded"', '"survives"'):
+            self.assertIn(verdict, self.text)
+        # The verdict is on the claim as written: an overstated attribution is killed,
+        # not "wounded" because a smaller claim would survive.
+        self.assertIn("on the claim AS WRITTEN", self.text)
+        self.assertIn('A claim that "recovers 14.75 points"\n  when its cause\'s own effect is 9.93 is killed', self.text)
+
+    def test_a_finding_is_a_number_and_every_field_is_decomposed(self):
+        self.assertIn("**A finding is a number.**", self.text)
+        self.assertIn("by EVERY field the\n   corpus offers", self.text)
+        self.assertIn("**Every field, not the chosen one.**", self.text)
+        self.assertIn('"Have you considered other factors?" is not a finding', self.text)
+
+    def test_reviewer_is_distrusted_and_nothing_is_applied(self):
+        self.assertIn("## Step 3: Distrust the reviewer", self.text)
+        self.assertIn("**Re-run every query the reviewer cites**", self.text)
+        # Review findings: a query-less kill is not a verdict; every field is tabled.
+        self.assertIn("**A `kill` or `wound` with no query behind it is not a\n   verdict**", self.text)
+        self.assertIn("**Check the reviewer's field table against the export.**", self.text)
+        self.assertIn("## Fields", self.text)
+        self.assertIn("**Do not apply any edit.**", self.text)
+        self.assertIn("**Nothing is applied.**", self.text)
+        self.assertRegex(self.text, r"`/review` writes nothing under\s+`engagements/`")
+
+    def test_fixture_read_by_reviewer_invalidates_the_review(self):
+        self.assertIn("invalidates the review", self.text)
+        self.assertIn("a review whose \"Files read\" contains a `fixtures/` path is discarded", self.text)
+        self.assertIn("never `fixtures/*/EXPECTED.md`", self.text)
+
+    def test_mechanical_checks_are_part_zero_not_the_reviewers_job(self):
+        self.assertIn("## Step 1: The mechanical checks", self.text)
+        self.assertIn("Part 0", self.text)
+        self.assertIn("do not stop on them", self.text)
 
 
 class SetupTests(unittest.TestCase):
