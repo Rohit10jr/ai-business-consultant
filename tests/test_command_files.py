@@ -211,6 +211,81 @@ class RankTests(unittest.TestCase):
         self.assertIn("No corpus reads, no new queries, no research.", self.text)
 
 
+class InvestigateTests(unittest.TestCase):
+    def setUp(self):
+        self.text = read("investigate.md")
+
+    def test_never_reads_the_fixture_answer_key(self):
+        self.assertIn("EXPECTED.md", self.text)
+        self.assertRegex(self.text, r"never `fixtures/\*/EXPECTED\.md`")
+        self.assertIn("**Never read `fixtures/`**", self.text)
+
+    def test_counter_hypotheses_are_mandatory_and_cover_the_classes(self):
+        for cls in ("`mix`", "`common-cause`", "`measurement`", "`named`"):
+            self.assertIn(cls, self.text)
+        self.assertIn("**No cause without its alternatives.**", self.text)
+        self.assertIn("An empty list is not an investigation", self.text)
+        # The kill criterion is stated before the query runs.
+        self.assertIn("`would_be_true_if`", self.text)
+        self.assertIn("`killed_if`", self.text)
+        self.assertIn('cannot end in "unlikely", "probably not", or "considered"', self.text)
+        # Kill criteria are pre-registered, numeric, and copied verbatim into the record.
+        self.assertIn("**Pre-register the list before any query runs.**", self.text)
+        self.assertIn("`preregistered_in`", self.text)
+        self.assertIn("**as a threshold with a\n  figure in it**", self.text)
+        # Only mix may be skipped, and only for a non-rate finding.
+        self.assertIn("| `common-cause` |", self.text)
+        self.assertRegex(self.text, r"`common-cause`, `measurement` and `named` are always\s+tested")
+
+    def test_decomposition_covers_every_component_and_sums(self):
+        self.assertIn("**every component of its denominator**", self.text)
+        self.assertIn("These sum to the total change exactly", self.text)
+        self.assertIn("**Pure mix near zero does not mean mix is irrelevant.**", self.text)
+        self.assertIn("A cause may claim **only its own component's rate effect**", self.text)
+        # The alternatives choose the lens, not the story.
+        self.assertIn("**One table per field that any candidate lives on.**", self.text)
+        self.assertIn("The\nstory does not get to choose the lens that flatters it", self.text)
+
+    def test_allocation_rule(self):
+        self.assertIn("**The allocation rule.**", self.text)
+        self.assertRegex(self.text, r"recorded\s+as a \*\*pair\*\*")
+        self.assertRegex(self.text, r"the\s+conclusion is about the allocation")
+        self.assertIn("conclusion_changes", self.text)
+        # The record must commit to whether any allocation is involved at all.
+        self.assertIn("**commit, in writing, to whether any allocation is involved at all.**", self.text)
+        self.assertIn("`allocation_dependence`", self.text)
+        self.assertIn("refuses a bare \"none\"", self.text)
+
+    def test_numbers_in_claim_and_mechanism_are_recorded_figures(self):
+        self.assertIn("**every number with a decimal point, a `%`, `pts`, `points`\nor a currency mark in the claim or the mechanism must equal a value recorded in this entry**", self.text)
+
+    def test_claim_is_worded_to_the_evidence_and_unsourced_figures_are_removed(self):
+        self.assertIn("**A figure missing its source is removed, not softened.**", self.text)
+        self.assertRegex(self.text, r'Not "roughly", not "about"')
+        self.assertIn("`claim_strength`", self.text)
+        self.assertIn("**the named remainder**", self.text)
+
+    def test_re_derives_rather_than_copies(self):
+        self.assertIn("Re-run **every** figure's `query_text`", self.text)
+        self.assertIn("A figure that does not reproduce is **not used**", self.text)
+        self.assertIn("run **in this turn**", self.text)
+
+    def test_does_not_recommend_and_does_not_chain(self):
+        self.assertIn("**Investigate, do not recommend.**", self.text)
+        self.assertIn("Do not run it. Stop here.", self.text)
+        self.assertIn("**If the user gives none, stop here.**", self.text)
+        self.assertIn("**If the user says no, skip that slug.**", self.text)
+
+    def test_single_writer_and_validator_gate(self):
+        self.assertIn("`/investigate` is the only writer of this file", self.text)
+        self.assertIn("`findings.json` is read, never written", self.text)
+        self.assertIn("validate_findings.py engagements/<client>/investigation.json", self.text)
+        self.assertRegex(self.text, r"\*\*If it reports\s+problems, fix the record or weaken the claim; do not report until it\s+passes\.\*\*")
+
+    def test_stops_on_invalid_findings(self):
+        self.assertIn("**If it\n  reports problems, stop**", self.text)
+
+
 class SetupTests(unittest.TestCase):
     def setUp(self):
         self.text = read("setup.md")

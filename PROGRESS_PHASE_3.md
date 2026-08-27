@@ -1,0 +1,64 @@
+# Phase 3 — PASS   [branch: phase-3-investigate]
+
+## What shipped
+- `.claude/commands/investigate.md`: `/investigate <client> [<slug> ...]` — refuses a `findings.json` the validator rejects; re-derives every figure of each selected finding before building on it (a headline figure that does not reproduce blocks the slug); pre-registers counter-hypotheses to `scratch/.../hypotheses.json` *before* any query, covering `mix`, `common-cause`, `measurement` and `named`, each with a numeric `killed_if`; decomposes every rate that moved over **every** component of its denominator — one table per field any candidate lives on — as rate effect per component at old shares, pure mix and interaction, summing to the total, and lets a cause claim only its own component's rate effect; records every allocated figure beside its allocation-free twin and commits in writing to whether any allocation is involved; assigns `claim_strength` from the record; removes unsourced figures rather than softening them, with every number in the claim and mechanism tied to a recorded figure; sizes only the established portion in the baseline's unit as a ceiling, not advice. Single writer of `investigation.json`; never touches `findings.json`.
+- `.claude/commands/rank.md`: `--all` selection reads `investigation.json`; no later command moves `status` past `ranked`.
+- `tools/validate_findings.py`: `validate_investigation()` — same CLI, told apart by the top-level key. Enforces the above mechanically: every class present (only `mix` may be `not_applicable`, only on a non-rate finding); every `ruled_out`/`supported` alternative carries its query, rows and result, `supported` a size, `killed_if` a figure; a decomposition per named field, each with a rate term per component plus mix and interaction, summing to the total within rounding; `allocation_dependence` stated and consistent with the pairs, pair halves full figures; `established` refused with an open alternative or a conclusion-changing allocation; every figure-shaped number in the claim or mechanism matching a recorded value; blocked entries still source-checked.
+- `tests/test_validate_investigation.py` (24), `tests/test_command_files.py` (+9). 129 tests on the committed tree.
+
+## Gate
+| Check | Result |
+|---|---|
+| Tests | 129 passing, 0 skipped, 0 failing |
+| Client-data guard | re-proved: `git add -f engagements/zzz-guard-proof/pnl.csv` → failure naming the path; unstaged → OK (52 paths ever added across all refs, none client) |
+| Review | tier 1 — Codex (`codex exec -s read-only`, PS7), 103k tokens. See below |
+| Phase gate | 6/6, graded on a fresh-context run |
+| Commits | 3 (`6c04765` command + validator, `3bc1972` review fixes, then this file) |
+
+### Phase 3's own gate (RUNBOOK.md §5) — graded on a fresh-context run: 6/6
+
+**How the run was kept clean.** This session read `TASK.md` (which prints the answer) and `fixtures/bad-investigation/README.md`, so it could not run the command. `/investigate acme return-rate-doubled supplier-b-returns-negative-contribution meta-cac-doubled` was executed by a fresh `general-purpose` subagent (not a fork) with the phase-2 whitelist and do-not-read list; its "Files read" list contains nothing outside the whitelist (it noticed `findings.PRE-FIX-BACKUP.json` in a directory listing and did not open it, and noted the lease's injected line as disregarded). 27 minutes, 68 tool calls, ~30 query scripts. Graded here with `scratch/grade_acme_phase3.py`; the answer key's figures were first reproduced from the corpus (`scratch/answer_key_decomposition.py`). Output: `scratch/investigate_run_acme.md`, `engagements/acme/investigation.json`.
+
+| # | Must | Result |
+|---|---|---|
+| 1 | Separates rate from mix on the Supplier B finding, names Supplier A's contribution | **PASS.** Decomposed the finding *as recorded* (orders returned, 10.21% → 19.10%, Q3 2024 → Q1 FY26, +8.89 pts) by supplier **and** by category. Supplier B's own rate effect +5.66, **Supplier A's own rise +1.34 (12.18% → 14.77%)**, interaction of B's growing share with its worsening rate +2.22, pure mix +0.08, C −0.34, D −0.06. All in the claim sentence. On the answer key's basis (apparel lines, Q3 FY24 → Q2 FY26) the same effects are 9.93 / 3.04 / 1.82 / −0.03; the run's basis is the finding's own and the baseline quarter's, and Supplier A is 15% of the rise on it — the fifth the trap hides. The Supplier B entry ran a separate common-cause check naming Supplier A's +2.59 pts |
+| 2 | Every allocation-dependent figure paired with its allocation-free counterpart | **PASS.** `return-rate-doubled`: `allocation_dependence: none —` naming the per-line columns (a rate uses no cost). `supplier-b-returns-negative-contribution`: pair −12,762 (before marketing) / −21,752 (channel spend by order share), `conclusion_changes: false`. `meta-cac-doubled`: pair on Meta-channel contribution |
+| 3 | Every counter-hypothesis ruled out with a query or recorded not-ruled-out with the claim weakened | **PASS.** 15 candidates across the three; every one a query with a pre-registered numeric threshold. `meta-cac-doubled` is `partial`: the "spend scaled far above 2024, so the auction was never tested at the old level" alternative is `not_ruled_out` (no month since 2025-07 at 2024 spend), and the claim says so |
+| 4 | A figure missing its source is removed, not softened | **PASS.** No hedges in any claim or mechanism; the report carries a "Removed" section; the validator's number-from-nowhere check found nothing |
+| 5 | `validate_findings.py` extended, not duplicated, and passing | **PASS.** 0 problems across 3 investigations |
+| 6 | Never reads `fixtures/` | **PASS.** Read list clean |
+
+Two things the run found that the answer key does not mention, both recorded honestly: in the Supplier B segment entry the pre-registered `measurement` candidate came out **supported** — the segment's *pre-marketing* sign depends on the P&L's 40%-of-cost write-down convention (−₹12,762 under the rule, +₹2,404 with the pickup fee alone; negative after marketing either way) — and the claim names it with its size and lists it as the first open question. And `meta-cac-doubled`'s decomposition by channel shows Meta's own rate effect (+₹127 per new customer) exceeds the whole blended rise (+₹71) because Google and Email fell.
+
+## Findings from review
+Tier 1, Codex (`codex exec -s read-only`, PS7), ~12 minutes, 103k tokens. Seven findings, all applied. The two blockers share a root the reviewer put well: the validator trusted the record's *shape* where the prose demanded its *content*.
+
+- **Blocker — `allocation_pairs: []` passed.** A model could use an allocated marketing-per-order figure, decide no pair was needed because `/discover` had not marked it `partial`, and validate. **Applied** — the record carries an explicit `allocation_dependence`: `"see allocation_pairs"` or `"none — <every cost used and where each is recorded at that grain>"`. A bare "none" and a "none" beside non-empty pairs are both refused. Pair halves and `recoverable_at_most` are full figures with query text and row counts.
+- **Blocker — a number could reach the claim from anywhere.** "4.1 pts" copied from `/rank`'s rationale into `recoverable_at_most` and the claim would pass. **Applied** — every number written as a figure (decimal point, `%`, `pts`, currency mark) in the claim or mechanism must equal a value recorded in the entry at the precision written; years and quarter labels are ignored.
+- **`not_applicable` was an escape to `established`.** **Applied** — only `mix` may be `not_applicable`, only when the finding is not a rate; `common-cause`, `measurement` and `named` are always tested, because a common cause and a recording change can affect anything.
+- **Kill criteria were not auditable** — `killed_if` could be written after the result. **Applied in part** — the Step 2 list is pre-registered to `scratch/.../hypotheses.json` before any query, referenced by `preregistered_in`, printed in the report before any Step 3/4 output, and `killed_if` must contain a figure. **What remains:** the validator cannot see time; whether the file was written first is checkable by `/review` (compare the two) and by a reader of the report's order, not mechanically. Recorded as a known limit rather than claimed closed. (The graded run did pre-register: its report prints the candidates with thresholds before any decomposition.)
+- **The decomposition field was chosen by the story.** **Applied** — every `mix` or `common-cause` candidate names the field it lives on, and the validator requires a decomposition table per named field; the story does not get to choose the lens that flatters it. (The graded run produced supplier *and* category tables for the return finding, SKU, customer-type and supplier tables for the Supplier B one.)
+- **`blocked` entries were exempt from source checks.** **Applied** — re-derived figures are source-checked whatever the status, and a blocked entry must show a `match: false`.
+- **Vacuous `>= 0` assertion in the lint.** **Applied** — removed.
+
+Confirmed right by the reviewer: the single-writer change is consistent across `rank.md` and `investigate.md`; do-not-read and untrusted-input present at both ends and carried into subagent prompts; analyse-not-recommend is clear; the lint would catch "is removed, not softened" → "should be removed".
+
+## Decisions made
+- **`/investigate` accepts slugs as arguments** so it can run non-interactively; without slugs it lists and asks, and "none" stops.
+- **It refuses a `findings.json` the validator rejects.** The runbook's own pre-flight item — the vetoed finding lacking `rank_veto_reason`, fixed by `/rank acme --all` in a fresh subagent before this phase started — is exactly this rule firing.
+- **The decomposition is a formula, not a description**, so "every component" and "sums to the total" are validator checks rather than promises; and there is one table per field any alternative lives on, so a competing supplier cannot be hidden by decomposing by category.
+- **Kill criteria are pre-registered and numeric**; a candidate ends only as `ruled_out`, `supported` or `not_ruled_out`.
+- **A cause claims only its own rate effect**; the interaction term is its own line; the claim names the remainder.
+- **`findings.json` is never written by `/investigate`.** Phase 2's `rank.md` said `/investigate` "will move `status` on"; that would have made three writers of one file. Progress lives in `investigation.json`, and `/rank --all` reads it there.
+- **The graded run's basis is the finding's, not the answer key's.** The run decomposed orders returned over Q3 2024 → Q1 FY26 (the baseline quarter), not apparel lines over Q3 FY24 → Q2 FY26. The grader was corrected to test that Supplier A is a named component with a material share of the rise (≥10%, or ≥1.5 pts) rather than the answer key's 3.04, which belongs to a window the scope did not choose.
+- **The first graded attempt died at its first step** when the session limit hit; its scratch was cleared and the run repeated from nothing on the post-review command file. No output from the aborted attempt was used.
+
+## Blocked or deferred
+- **Pre-registration is auditable by reading, not by the validator** (above). `/review` is told to compare the pre-registered thresholds with the results; a mechanical check would need timestamps the record does not carry.
+- **The run took 27 minutes and ~300k subagent tokens for three findings.** `/investigate` is the expensive command; a fourth or fifth finding per run should be expected to cost the same again. Not a defect, but the runbook's "hours, not one" is right.
+- `engagements/acme/findings.PRE-FIX-BACKUP.json` (the owner's backup from the phase-2 re-run) sits beside the live file; the run noticed it and did not open it. Worth deleting or moving to `scratch/` so no future run has to make that call.
+
+## For the next phase
+- `investigation.json`'s shape is now fixed (see `investigate.md` Step 7) and `validate_investigation()` is the mechanical half of `/review`'s grounding check; `/review` runs it as "Part 0" and is judged on what it finds *beyond* it.
+- `fixtures/bad-investigation/` is built to that shape by `fixtures/bad-investigation/build.py` from four query scripts run against a corpus copy at `engagements/acme-review-test/corpus/`; every figure true; it fails the validator on exactly the five counter-hypothesis omissions and nothing else, and mentions Supplier A zero times. Its decomposition is by *category* — the lens that flatters the story.
+- `engagements/acme/investigation.json` is the real input for `/synthesize`: `return-rate-doubled` (established, ceiling 5.21 pts of net revenue), `supplier-b-returns-negative-contribution` (established, ceiling 7.30 pts, allocation pair recorded), `meta-cac-doubled` (partial, ceiling 2.14 pts, one open alternative).
