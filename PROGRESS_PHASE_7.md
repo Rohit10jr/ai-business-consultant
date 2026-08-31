@@ -64,7 +64,7 @@ harness's.
 | # | Item | Result |
 |---|---|---|
 | U1 | `/investigate acme supplier-b-returns-negative-contribution` | **FAILED** — on the validator condition only; the two figure conditions passed |
-| U2 | `/investigate acme meta-cac-doubled` | not yet run |
+| U2 | `/investigate acme meta-cac-doubled` | **PASSED** |
 | U3 | `/synthesize acme` | not yet run |
 | U4 | `/review acme` | not yet run |
 | U5 | `/setup frameworks` | not yet run |
@@ -198,3 +198,104 @@ in contribution per order unexplained.
 ### Nothing was fixed
 
 No file in `.claude/` or `tools/` was touched by U1 or by this context.
+
+---
+
+## U2 — `/investigate acme meta-cac-doubled` — **PASSED**
+
+Model: Opus. 72 tool calls, 260k tokens, 26 minutes. Report:
+`scratch/acme/U2-investigate-meta-cac.md`, entry JSON alongside at
+`scratch/acme/U2-investigate-meta-cac.entry.json`. Cold — same audit as U1.
+
+Pass condition: *the movement carries `denominator_unchanged_because`, or a denominator
+delta with its reason.* It carries the former, and argues it structurally rather than
+asserting it:
+
+```json
+"numerator_from": 124540.03, "numerator_to": 138077.14, "numerator_delta": 13537.11,
+"denominator_from": 631425.85, "denominator_to": 631425.85, "denominator_delta": 0.0,
+"denominator_unchanged_because": "the fix buys the same 43 new Meta customers for less
+  money. No order is added, cancelled or refunded, so gross_revenue and refunds - the two
+  columns pnl_monthly.csv builds net_revenue from - are untouched; the whole saving lands
+  in the marketing_spend column, which that file subtracts inside contribution. Unlike a
+  returns fix, nothing is re-earned as revenue, so only the numerator moves",
+"from": 19.7236, "to": 21.8675, "delta": 2.1439,
+"rows_in": 5475, "rows_out": 43
+```
+
+`recoverable_at_most` = `{"value": 13537.11, "unit": "rupees"}`. The previous run recorded
+this same cause as `{"value": 2.1439, "unit": "pts of Q1 FY26 contribution margin (Rs
+13,537.11 / net revenue 631,425.85) …"}` — the frozen-denominator division phase 6 exists to
+kill, in the ceiling field itself. **Fix 1 corrected it at runtime.** Here the two coincide
+numerically because the denominator genuinely does not move; the point is that the record
+now distinguishes them.
+
+Validator, verbatim, after the run:
+
+```
+$ python tools/validate_findings.py engagements/acme/investigation.json
+validate_findings: 1 problem(s) in engagements\acme\investigation.json
+  - investigation return-rate-doubled: missing keys ['baseline_movement_at_most']
+exit=1
+```
+
+Three problems before this run, one after; the remaining one is the third entry, which U2
+was forbidden to touch — the same `:313`/`:422` deadlock recorded under U1. U2's condition
+does not mention the validator, so this does not fail the item. The subagent proved
+confinement by validating a copy with that entry removed: `OK - 2 investigation(s)`, and
+verified byte-identity of both untouched entries against a pre-write snapshot.
+
+### Finding 4 — two runs of the same command, on the same data, disagree on claim strength
+
+The previous run recorded `meta-cac-doubled` as **`partial`**. This one records
+**`established`**. `RUNBOOK.md` §"Judgment calls" says a disagreement between two runs is a
+finding about the command, so here it is, and the cause is exact and narrow.
+
+Both runs pre-registered the same `other` candidate — that the CAC rise is Acme's own
+scaling rather than Meta's auction — and each invented its own kill threshold:
+
+| | previous run | this run |
+|---|---|---|
+| pre-registered test | months from 2025-07 with Meta spend **≤ 6,000** | months from 2025-07 with Meta spend **≤ Rs 8,000** |
+| months qualifying | **0** — "the pre-registered test cannot be run" | **3** — 2025-09, 2025-10, 2026-01 |
+| result | — | pooled CAC **539.20** vs a Rs 500 kill threshold |
+| status | **`not_ruled_out`** | **`ruled_out`** |
+| claim strength | **`partial`** | **`established`** |
+
+The 2024 monthly Meta spend range is 2,341.80..7,946.86. A cut at 6,000 selects nothing; a
+cut at 8,000 selects three months. Nothing in the command file pins the threshold, so the
+runner's own choice of it decides whether the claim is `established` or `partial` — and the
+claim strength is what `/synthesize` and the founder read.
+
+This is compounded by the second thing the run reported: **Step 0 has the runner read the
+previous run's entire pre-registration — thresholds and outcomes — before Step 2 asks it to
+pre-register its own.** A re-investigation therefore cannot demonstrate that its hypotheses
+were chosen independently of the answers it already saw. Pre-registration whose thresholds
+are chosen by the runner, after being shown which threshold failed last time, is not
+pre-registration. Not fixed.
+
+To be fair to this run: its ≤8,000 cut is the better test — it is the one that actually
+selects months inside the 2024 range and can be executed, and it ruled the candidate out on
+a number rather than on an inability to test. The defect is that the command file permits
+either, not that this run chose wrongly.
+
+### Finding 5 — Step 3's decomposition base is unspecified, and it moves the figures ~1.7×
+
+`meta-cac-doubled` is a per-customer cost, not a rate with a denominator the corpus defines,
+and Step 3 does not say which aggregate to decompose. The previous run used paid channels
+only; this run used all new customers, blended.
+
+| | previous run (paid only) | this run (all channels) |
+|---|---|---|
+| total change in blended CAC | +71.1308 | +35.2845 |
+| Meta's own rate effect | **+127.2315** (178.87%) | **+76.2599** (216.13%) |
+| pure mix | −3.5794 | −8.2088 |
+| interaction | −19.1681 | −12.7754 |
+
+Both decompositions reconcile to their own total exactly, both clear the 50% threshold, and
+the verdict is stable — but the reported magnitudes differ by about 1.7×, and a reader of
+one record cannot tell which base produced it without recomputing. Not fixed.
+
+Unchanged across both runs and worth recording as the harness working: Meta CAC
+351.6736 → 666.4900 (+89.52%), Google −5.52%, Email −22.86%, spend ties to
+`pnl_monthly.csv` at max |difference| 0.00 over 36 months.
