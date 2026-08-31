@@ -85,7 +85,9 @@ with the reason so the human can see it was considered.
 
 ## Step 2: Score — parallel agents, ~5 findings each
 
-Dispatch `general-purpose` agents via the Agent tool, about five findings per agent (one
+Dispatch `general-purpose` agents via the Agent tool, **each spawned with
+`model: "opus"`** (`CLAUDE.md` -Which model a subagent runs on), about five findings per
+agent (one
 agent is fine for ≤5). Each prompt contains, inline — the agent does not read files:
 
 - the scope `question` and `baseline` line, verbatim

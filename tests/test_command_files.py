@@ -477,5 +477,57 @@ class SetupTests(unittest.TestCase):
         self.assertIn("`supersedes <recorded_on> <finding_slug>`", self.text)
 
 
+
+class SubagentModelTests(unittest.TestCase):
+    """Every dispatched subagent names its model at the dispatch point.
+
+    Inheritance is the failure this pins. Phases 3-5 ran every graded subagent on
+    whatever model the parent happened to be started on, because nothing said
+    otherwise - not a decision anyone made, just the default. The rule lives in
+    CLAUDE.md, and it is repeated at each dispatch because a rule in another file
+    has to be remembered at the moment of spawning, which is exactly when a hurried
+    model is thinking about the prompt instead.
+    """
+
+    MODEL = 'model: "opus"'
+
+    def dispatching_commands(self):
+        # A command dispatches if it names the Agent tool or general-purpose in a
+        # sentence that spawns one - as opposed to the closing rule that every file
+        # carries about what any subagent it spawns must be told.
+        out = []
+        for path in sorted(COMMANDS.glob("*.md")):
+            text = path.read_text(encoding="utf-8")
+            if "general-purpose" in text or "Agent tool" in text:
+                out.append((path.name, text))
+        self.assertTrue(out, "no dispatching commands found")
+        return out
+
+    def test_every_dispatch_names_the_model(self):
+        for name, text in self.dispatching_commands():
+            with self.subTest(command=name):
+                # assertIn on a whole command file dumps the file on failure; say it short.
+                self.assertTrue(
+                    self.MODEL in text,
+                    f"{name} dispatches a subagent without naming its model. "
+                    f"Add {self.MODEL} at the dispatch point - see CLAUDE.md, "
+                    "'Which model a subagent runs on'",
+                )
+
+    def test_the_policy_is_recorded_and_explains_itself(self):
+        claude = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        self.assertIn("Which model a subagent runs on", claude)
+        self.assertIn(self.MODEL, claude)
+        # The reason has to travel with the rule, or the next person changing the
+        # model will not know which half of the split they are moving.
+        self.assertIn("inheritance is what put the whole of", claude.lower())
+
+    def test_forks_are_named_as_unredirectable(self):
+        # A fork ignores `model`. Someone will reach for one as a convenience.
+        claude = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+        self.assertIn("cannot be redirected", claude)
+        self.assertIn("do not switch one to a fork", claude.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
