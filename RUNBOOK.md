@@ -1,30 +1,33 @@
-# Unattended Run — Phase 6
+# Unattended Run — Phase 7, the cold run
 
-> Operative runbook. Phases 0-5 are on `main` and the pipeline has run on Acme. Phase 6 is
-> two corrections the first engagement exposed. Phase 7 — the cold end-to-end run — gets its
-> own file and its own session.
+> Operative runbook. Phases 0-6 are on `main`. Nothing here builds; this phase **runs** the
+> harness and reports what it does. The list of what to run is `PROGRESS_PHASE_6.md`
+> §"Runtime gates", U1 to U8.
 
 Read [`TASK.md`](TASK.md), [`CLAUDE.md`](CLAUDE.md) and [`BUILD_PLAN.md`](BUILD_PLAN.md)
 first. This file assumes all three, and `TASK.md` carries the per-phase briefs.
 
 ## Scope
 
-**One branch, two fixes.** Both are corrections to commands already on `main`.
+**One branch, one job: run it.**
 
 | Phase | Branch | Cut from | Progress file |
 |---|---|---|---|
-| 6 | `phase-6-fixes` | `main` | `PROGRESS_PHASE_6.md` |
+| 7 | `phase-7-cold-run` | `main` | `PROGRESS_PHASE_7.md` |
 
-`TASK.md` carries both briefs in full. In short: the ceiling is measured against a frozen
-denominator and overstates by roughly a third; and the calibration rule is blunt because the
-gate that tested it demanded a swing.
+The eight runtime items phase 6 left `unverified` are the assignment, and they are already
+written with their pass conditions in `PROGRESS_PHASE_6.md`. `TASK.md` carries the framing
+and the one rule that matters: **if it breaks, let it break.**
 
 ## HARD STOP
 
-**After both fixes are gated, STOP.** Do not run the pipeline end to end. That is phase 7,
-and it must be a session that did not make these fixes — the same reasoning that has graded
-every gate in this repo with a fresh subagent. A run by the author of the fix demonstrates
-the author, not the harness.
+**Do not fix the harness.** Not a prompt file, not a validator, not a threshold — however
+obvious the fix, however small. Record the failure and move to the next item. A repaired run
+is exactly the artefact this phase exists to replace: the repo already has seven of those and
+no cold one.
+
+**After U7 and U8, STOP.** Do not start on fixes; that is phase 8, and it should be briefed
+from what you find, not decided mid-run.
 
 **Also stop immediately, at any point, if:**
 
@@ -36,13 +39,16 @@ the author, not the harness.
 
 ## Order and pacing
 
-**Fix 1 before fix 2** — they are independent, but fix 1 touches the artifacts phase 7 will
-regenerate, and it is the one with a number already waiting to be matched.
+**The parts before the whole.** U1-U6 and U8 exercise one command each; U7 is the entire
+pipeline in one sitting. Run the parts first — they are cheaper, and finding that
+`/investigate` is broken on U1 costs you twenty minutes instead of four hours.
 
-**Inside fix 2, the gate before the rule, and in separate commits.** The rule is blunt
-because the gate demanded a swing; rewrite the gate first and the honest formula follows.
-Change the formula first and you will fit the gate to whatever you built. The commit order is
-part of the gate.
+**Then reset the engagement and run U7 properly.** Leave `engagements/acme/corpus/` and
+`scope.md`; clear what the parts wrote — `investigation.json`, `recommendation.md`,
+`findings.json` — so U7 starts where a real engagement starts and not on the shakedown's
+leftovers. Say in the progress file exactly what you cleared.
+
+U7 is one continuous run, `/scope` through `/outcome`, with nothing changed in between.
 
 ### Do not idle
 
@@ -50,14 +56,18 @@ If a phase is blocked, do not wait. Move to the next thing that is not blocked a
 the block. If everything is blocked, that is a fail-stop — write the report and stop rather
 than burning the run.
 
-### Smaller than phases 3-5, and deliberately cheap
+### This is the expensive one — budget for it
 
-Two command edits, a checker rule, a formula, and their tests. **No subagents, and no command
-run against Acme** — the owner's budget is committed elsewhere, and phases 3-5 spent theirs on
-exactly those runs. Unit tests on hand-written inputs carry this phase.
+Phases 3-5 cost roughly 1.5M subagent tokens and 3-4 hours for one engagement, and five runs
+died on session limits. Expect the same. `/investigate` and `/review` are 20-30 minutes each
+on their own.
 
-Every runtime gate is recorded `unverified` on purpose. Phase 7 verifies them from a cold run,
-and `PROGRESS_PHASE_6.md` hands it the list.
+If the session ends mid-run, **say where it stopped and what had been written**. A partial
+run reported precisely is a usable result; a partial run described vaguely is not, because
+nobody can tell afterwards which output came from where.
+
+Every subagent goes out with `model: "opus"` — `CLAUDE.md` §"Which model a subagent runs on".
+A dispatch without it is a finding.
 
 ## Before you begin
 
@@ -143,46 +153,26 @@ Clean tree, all work committed, branch pushed.
 
 Full reasoning in `TASK.md`. In short:
 
-**Fix 1 — the ceiling denominator**
+**Phase 7 — the run itself**
+
+The gate is not "the code passes". It is "the run happened and is honestly written down".
 
 | # | Must |
 |---|---|
-| 1 | `recoverable_at_most` carries a currency unit only; baseline points come only from `baseline_movement_at_most` |
-| 2 | The movement query's output shows numerator **and** denominator moving |
-| 3 | `check_recommendation.py` rejects baseline-unit ceilings not sourced from a movement figure, and rejects an option whose movement is the sum of its causes' |
-| 4 | Tests cover the single-cause and the combined-option cases, on hand-written inputs |
-| 5 | A worked example in the command file reaches **≈+5.02 pts** by hand on Acme's Supplier B numbers — the figure `/review` derived independently. Live re-derivation is deferred to phase 7 and recorded `unverified` |
+| 1 | Every one of U1-U8 is recorded as **passed, failed, or not reached** — no item silently absent |
+| 2 | A failed item carries **the output that failed**, verbatim, not a description of it |
+| 3 | U7 ran as one continuous sitting, from a reset engagement, with nothing changed in between |
+| 4 | Nothing was fixed mid-run; anything repaired is named, with why it stopped the run being *possible* rather than merely wrong |
+| 5 | `RUN_REPORT.md`'s engagement section is replaced by this run's output, under the corrected ceiling rule |
+| 6 | The progress file opens with one paragraph answering: **did the pipeline run end to end, or not?** |
 
-**Fix 2 — the calibration gate, then the rule**
+**Item 4 is the one to hold yourself to.** The temptation to fix a one-line prompt bug and
+carry on is exactly what produced seven repaired runs and no cold one.
 
-| # | Must |
-|---|---|
-| 1 | The gate is rewritten in `TASK.md` and `RUNBOOK.md` **before** the formula changes, and the commit order shows it |
-| 2 | `frameworks.md` carries the formula, its reasoning, and the adjustment at n = 1, 2, 5 |
-| 3 | A single rejection's effect is a stated number, and whether it can cross a verdict band is answered explicitly either way |
-| 4 | `/setup` still reads the rule from the file; `/outcome` still writes only `tracker.csv` |
-| 5 | Nothing client-identifying crosses into tracked `frameworks.md` — the phase 5 rule holds |
-
-**The calibration gate, standing (rewritten in phase 6, before the formula changed).** It
-replaces phase 5's *"a recorded rejection must visibly change the next ranking"*, which
-dictated a rule tuned to swing on one data point. The loop passes when the mechanism is
-shown, not when a swing is forced:
-
-| # | Must |
-|---|---|
-| a | `/rank` records `rank_score_uncalibrated` beside `rank_score` and prints "Calibration moved: …" from one run — same agents, same raw scores — so the effect is separable from scoring noise |
-| b | `frameworks.md` carries the formula and, beside it, the argued strength: what one row does, what five do, why that is right for a practice that has just started |
-| c | `frameworks.md` tabulates the adjustment at n = 1, 2, 5 and a mixed case — the curve, not a point |
-| d | Whether a single row may move a finding across a verdict band is stated either way, with reasoning |
-| e | `/setup` reads the rule from the file, never from memory; `/outcome` writes only `tracker.csv`; nothing client-identifying crosses |
-
-Whether the order moved after one rejection is **reported, not demanded**. Under the
-recorded rule it may or may not; either is the rule's stated behaviour, and the loop has
-closed as long as the adjustment is recorded, visible, and grows with evidence.
-
-**Grade every one of these in a session that has not read the answer key.** `TASK.md`
-§"Grading without cheating" has the procedure. If you cannot arrange it, mark the gate
-**unverified** rather than grading your own run.
+**You are the fresh context this time.** You did not write phase 6's fixes, which is what
+makes this run evidence. Do not open `fixtures/*/EXPECTED.md` before or during a run; compare
+against it afterwards, once the output is on disk and cannot be influenced by knowing the
+answer.
 
 ## Fail-stop
 

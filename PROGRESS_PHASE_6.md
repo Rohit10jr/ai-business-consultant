@@ -62,8 +62,8 @@ it, for phase 7.
 | U4 | `/review acme` on the regenerated recommendation | the reviewer no longer wounds the ceilings on the denominator point |
 | U5 | `/setup frameworks` on the existing tracker (2 rows), the table now empty | proposes `supplier +8`, `channel-spend −8` from the file's formula with the arithmetic shown; nothing from `pushback`/`notes` crosses |
 | U6 | `/rank acme --all` after U5 | "Calibration moved: …" line from one run, naming position and verdict changes; `google-cac-flat` fixability 80 → 72 (−8, not −25), score 80 → ≈77.6; whether it still leaves `pursue` is reported, not demanded |
-| U8 | `/investigate acme` with two or more slugs | `overlaps` carries a `shared_rows` count per pair from a query; the return-rate cause and the Supplier B cause are recorded as overlapping (the same returns), and `/synthesize` declines to combine them |
 | U7 | the whole pipeline cold, `/scope` → `/outcome`, in a session that did not make these fixes | the engagement section of `RUN_REPORT.md` regenerated with rupee ceilings and recomputed movements |
+| U8 | `/investigate acme` with two or more slugs | `overlaps` carries a `shared_rows` count per pair from a query; the return-rate cause and the Supplier B cause are recorded as overlapping (the same returns), and `/synthesize` declines to combine them |
 
 ## Findings from review
 Tier 1, Codex (`codex exec -s read-only`, PS7), ~15 minutes, 190k tokens. It verified the worked example arithmetically (19.7236% → 24.7409%, +5.0173), the commit order, the n-table row by row, and that the fixture fails only on its five omissions. Eight findings: seven applied, one was true at review time and is closed by this commit.
