@@ -28,8 +28,18 @@ inherit it. The orchestrating context (this file's author) is Opus 5 (1M context
 | `corpus/` | present | 12 files, no `EXPECTED.md` anywhere under `engagements/` |
 | `findings.json` | passes the validator | `validate_findings: OK - 11 findings(s), every figure carries its query and row counts`, exit 0 |
 | `investigation.json` | **fails** on shape | fails, exit 1 — 6 problems (3 × `missing keys ['baseline_movement_at_most']`, 3 × missing `overlaps` pair) |
-| `recommendation.md` | carries the superseded note | present, `check_recommendation.py` exit 2 |
+| `recommendation.md` | carries the superseded note | present; `check_recommendation.py` reports **74 figures from nowhere**, exit 1 |
 | — | not mentioned in the brief | **`findings.PRE-FIX-BACKUP.json`** also present (632 KB, dated 2026-08-25) |
+
+**Correction to this table, made during U3.** My first pre-flight pass ran
+`check_recommendation.py` with one argument and recorded "exit 2" as though it were a
+content failure. It is not: the checker takes three arguments and exit 2 was argparse
+rejecting the call. Run properly —
+`check_recommendation.py engagements/acme/recommendation.md engagements/acme/investigation.json engagements/acme/scope.md`
+— it reports **74 figures from nowhere, exit 1**, the first three being
+`- Rs 46,121.67 = 42.3255 * Rs 1,089.69`, `- 9.4483 pts = 7.3044 pts + 2.1439 pts` and
+`- Rs 59,658.78 = Rs 46,121.67 + Rs 13,537.11`. The starting state is worse than my
+pre-flight said, not better. The table above now carries the corrected figure.
 
 `findings.PRE-FIX-BACKUP.json` is a state deviation, recorded rather than repaired: the
 brief names four files and this is a fifth. It is gitignored like everything under
@@ -65,7 +75,7 @@ harness's.
 |---|---|---|
 | U1 | `/investigate acme supplier-b-returns-negative-contribution` | **FAILED** — on the validator condition only; the two figure conditions passed |
 | U2 | `/investigate acme meta-cac-doubled` | **PASSED** |
-| U3 | `/synthesize acme` | not yet run |
+| U3 | `/synthesize acme` | **FAILED** — pass condition unreachable; `/synthesize` itself refused correctly |
 | U4 | `/review acme` | not yet run |
 | U5 | `/setup frameworks` | not yet run |
 | U6 | `/rank acme --all` | not yet run |
@@ -299,3 +309,92 @@ one record cannot tell which base produced it without recomputing. Not fixed.
 Unchanged across both runs and worth recording as the harness working: Meta CAC
 351.6736 → 666.4900 (+89.52%), Google −5.52%, Email −22.86%, spend ties to
 `pnl_monthly.csv` at max |difference| 0.00 over 36 months.
+
+---
+
+## U3 — `/synthesize acme` — **FAILED**
+
+Model: Opus. 14 tool calls, 79k tokens, 5.5 minutes. Report: `scratch/acme/U3-synthesize.md`.
+Nothing under `engagements/` was touched — mtimes and sizes identical to the pre-run listing.
+
+**The command refused, and the refusal was correct.** It stopped at its Step 0 gate:
+
+```
+$ python tools/validate_findings.py engagements/acme/investigation.json
+validate_findings: 1 problem(s) in engagements\acme\investigation.json
+  - investigation return-rate-doubled: missing keys ['baseline_movement_at_most']
+exit=1
+```
+
+`synthesize.md` requires the stop — *"If it reports problems, stop … Say 're-run
+`/investigate <client> <slug>` for the entries it names'."* Step 2 was never reached, so no
+option, no `Ceiling:` line and no `Movement:` line exists. The item's pass condition —
+*Option B's `Movement:` line is one joint division over both terms (≈ 26–27%);
+`check_recommendation.py` clean* — is therefore unmet, and U3 is recorded FAILED.
+
+The failure is upstream of `/synthesize`, in the third investigation entry no item has yet
+regenerated. But the item would have failed anyway, for a reason that has nothing to do with
+that entry:
+
+### Finding 6 — U3's pass condition is forbidden by phase 6's own overlap rule
+
+`.claude/commands/synthesize.md:103`:
+
+> Two causes may be **combined only if their pair is recorded with `shared_rows: 0`.**
+
+The record, written by U1 and U2 from executed queries:
+
+| pair | `shared_rows` | combinable? |
+|---|---|---|
+| supplier-b-returns-negative-contribution / return-rate-doubled | **52** | no |
+| supplier-b-returns-negative-contribution / meta-cac-doubled | **11** | no |
+| return-rate-doubled / meta-cac-doubled | **24** | no |
+
+Option B *is* the combination of the Supplier B cause and the Meta cause. Their pair shares
+11 rows, so the rule forbids combining them, so no joint movement figure may be written, so
+the ≈26–27% the pass condition demands **cannot legally exist on this record**. Every option
+would have to be sized on its larger cause alone.
+
+Phase 6 shipped the overlap rule and this pass condition in the same phase, and ran neither.
+Step 2's longest passage — the joint-recomputation formula
+`to = 100 × (n₀ + Δn₁ + Δn₂) / (d₀ + Δd₁ + Δd₂)`, the centrepiece of fix 1 — has **no
+licensed use on this engagement at all**. Not fixed. This is the clearest example so far of
+what running cold catches that reading cannot.
+
+### Finding 7 — the validator's refusal message is an incomplete work order
+
+`tools/validate_findings.py:320` does `continue` immediately after a missing-keys error,
+suppressing every remaining check on that entry:
+
+```python
+        if miss:
+            errors.append(f"{where}: missing keys {sorted(miss)}")
+            continue
+```
+
+So the message says `1 problem(s)` and names one missing key. On an in-memory copy (nothing
+written) the run confirmed `return-rate-doubled` carries a **second**, independent violation:
+
+```
+recoverable_at_most.value = 5.212
+recoverable_at_most.unit  = "pts of Q1 FY26 contribution margin (Rs 32,910.11 /
+                             net revenue 631,425.85); Supplier B's own rate effect only…"
+```
+
+That is a ceiling in points, computed as rupees over a frozen denominator — the precise
+thing fix 1 exists to forbid, sitting in the entry no run has regenerated. The two defects
+are one mistake seen twice: the movement was written into the ceiling's unit string instead
+of into its own key.
+
+The consequence is operational, not cosmetic. A human who does exactly what the refusal tells
+them — re-run `/investigate acme return-rate-doubled` to add the missing key — gets a second
+refusal naming a defect the first message could have named. The count in the header is wrong
+too: `1 problem(s)` where there are at least two. Not fixed.
+
+### Finding 8 — the stale, failing `recommendation.md` is left in place unflagged
+
+`/synthesize` exits before its Step 4 hand-off, correctly. But it leaves
+`engagements/acme/recommendation.md` on disk — a document that fails its own checker on 74
+figures and whose headline `7.3044 pts` contradicts the `5.212` now in the record. Nothing
+in the command file covers this state, and nothing stops a human running `/review acme`
+against it. U4 is about to do exactly that. Not fixed.
