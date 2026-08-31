@@ -13,7 +13,7 @@ first. This file assumes all three, and `TASK.md` carries the per-phase briefs.
 
 | Phase | Branch | Cut from | Progress file |
 |---|---|---|---|
-| 7 | `phase-7-cold-run` | `main` | `PROGRESS_PHASE_7.md` |
+| 7 | `phase-7-cold-run` | `docs/phase-7-run-brief` (or `main` once that branch is merged) | `PROGRESS_PHASE_7.md` |
 
 The eight runtime items phase 6 left `unverified` are the assignment, and they are already
 written with their pass conditions in `PROGRESS_PHASE_6.md`. `TASK.md` carries the framing
@@ -74,11 +74,13 @@ carries it down. Record which model each run used in the progress file.
 
 ## Before you begin
 
-1. **Sync before you read anything.** `git fetch origin`, then check
-   `git log --oneline -1 origin/main` and confirm your branch is cut from that commit.
-   The brief you work from - `TASK.md`, this file, `fixtures/` - lives on `main`, so a
-   checkout made before the last merge means reading a stale brief and reporting files as
-   missing when they are only unfetched. Then confirm `git status` is clean.
+1. **Sync before you read anything.** `git fetch origin`, then confirm your checkout is at
+   the tip of `origin/docs/phase-7-run-brief` — or of `origin/main` once that branch has
+   been merged; whichever tip carries this file's wording is the commit to cut
+   `phase-7-cold-run` from. The brief you work from - `TASK.md`, this file, `fixtures/` -
+   must travel with the run: a checkout made before the last push means reading a stale
+   brief and reporting files as missing when they are only unfetched. Then confirm
+   `git status` is clean.
 2. Read `docs/REFERENCE_PATTERN.md` if you have not this session. Ten minutes, and it
    prevents re-deriving decisions already made.
 3. Confirm `codex` is on PATH: `codex --version`. If not, you are on tier 3 for the whole

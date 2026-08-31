@@ -122,7 +122,10 @@ Two things about it, both intentional:
 `scratch/` still holds every phase 3-6 run's reports and query scripts. **Start from a clean
 `scratch/acme/`** so nothing from a previous run can be mistaken for this one's.
 
-Before anything: `git fetch origin`, confirm you are cut from `origin/main`, run
+Before anything: `git fetch origin`, then confirm the brief you are reading is current —
+this file at the tip of `origin/docs/phase-7-run-brief`, or of `origin/main` once that
+branch has been merged; either is fine, and the tip you find is the commit to cut
+`phase-7-cold-run` from, so the brief travels with the run. Then run
 `python -m unittest discover -s tests -t .` and `python tools/check_no_client_data.py`. If
 either fails, that is a finding and the run stops there.
 
