@@ -64,9 +64,18 @@ out why its output is wrong, stop — that is a finding, and writing it down is 
 
 ## Two things that make this run mean something
 
-**Every subagent is spawned with `model: "opus"`**, per `CLAUDE.md` §"Which model a subagent
-runs on". The commands say so at each dispatch point. This is the first run under that rule;
-if a command dispatches without it, that is a finding.
+**Dispatch your subagents with `model: "opus"`**, per `CLAUDE.md` §"Which model a subagent
+runs on". That is this repo's development convention and it applies to you. It is **not** in
+the command files, deliberately — whoever runs this harness on a real client picks their own
+model on their own budget. You pass it at the top and inheritance carries it down: a graded
+`/discover` dispatched on Opus spawns per-branch children that inherit Opus from it.
+
+**Record which model each run used** in the progress file. Not to justify it — so a reader
+can weigh the result. A gate passed on one model is weaker evidence about another, and the
+original failure here was not the wrong model but that nobody chose and nobody could tell
+afterwards.
+
+If you find a command file naming a model, **that is a finding** — the lint forbids it.
 
 **Fresh context is the whole point.** You did not write these fixes, and that is what makes
 your run evidence rather than a demonstration of the author. Do not read

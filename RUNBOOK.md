@@ -66,8 +66,9 @@ If the session ends mid-run, **say where it stopped and what had been written**.
 run reported precisely is a usable result; a partial run described vaguely is not, because
 nobody can tell afterwards which output came from where.
 
-Every subagent goes out with `model: "opus"` — `CLAUDE.md` §"Which model a subagent runs on".
-A dispatch without it is a finding.
+Dispatch your subagents with `model: "opus"` — `CLAUDE.md` §"Which model a subagent runs on".
+The command files say nothing about models on purpose; you pass it at the top and inheritance
+carries it down. Record which model each run used in the progress file.
 
 ## Before you begin
 
