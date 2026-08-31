@@ -124,27 +124,35 @@ stop at the first that genuinely works, and always say which tier you used.
 
 ## Which model a subagent runs on
 
-**You build on whatever model the owner started you on. Every subagent you spawn to *run* a
-command runs on `opus`** — pass `model: "opus"` in the Agent tool call, explicitly, every
-time. Do not leave it out and let the subagent inherit: inheritance is what put the whole of
-phases 3-5 on the parent's model without anyone choosing it.
+**This is a rule for you, building this repo. It is not a rule the harness ships.** The
+command files say nothing about models on purpose — whoever runs `/discover` on their own
+client picks their own, on their own budget, and a preference of ours hard-coded into their
+tool would override them. Keep the distinction: *how we develop* and *how the product
+behaves* are different files with different audiences.
 
-The split is deliberate. Building the harness is design work and stays where the owner put
-it. Running a command is graded work, and what makes those runs worth anything is that the
-context is **fresh**, not that it is the strongest available model — a subagent that has not
-seen the answer key is the whole point. Phase 4 is the evidence: a subagent killed the
-planted bad investigation and named Supplier A's 3.04 points unprompted. Fresh context did
-that, not raw capability.
+**You build on whatever model the owner started you on. Every subagent you spawn — to grade
+a run, to review a change, to read a large file — goes out with `model: "opus"`**, passed
+explicitly in the Agent tool call. Do not leave it out and let it inherit: inheritance is
+what put the whole of phases 3-5 on the parent's model without anyone choosing it, and the
+cost only became visible afterwards.
 
-Two consequences worth knowing:
+You do not need to touch a command file to make this hold. **Inheritance cascades.** Dispatch
+a graded `/discover` run with `model: "opus"` and that subagent's own children — the
+per-branch agents `discover.md` spawns — inherit Opus from it. One explicit choice at the top
+propagates the whole way down.
+
+Three things worth knowing:
 
 - **A `fork` cannot be redirected.** Forks always inherit the parent's model and ignore
-  `model`. Every subagent in this repo is `general-purpose` for the fresh-context reason
-  already, so this never bites — but do not switch one to a fork for convenience.
+  `model`. Every subagent here is `general-purpose` for the fresh-context reason already, so
+  this never bites — but do not switch one to a fork for convenience, and note that the
+  command files forbid it for a second reason: a fork inherits the reasoning that produced
+  the work, which is precisely what a reviewer must not have.
+- **Say which model ran, in the progress file.** Not to justify the choice — so a later
+  reader can weigh a result. A gate passed on one model is weaker evidence about another.
 - **Tier 3 review is less degraded than the table above says** when the reviewer is on a
-  different model from the author. The table's "correlated blind spots" warning assumes
-  inheritance. Say which model the reviewer ran on in the progress file, and the reader can
-  judge how much weight the review carries.
+  different model from the author. That table's "correlated blind spots" warning assumes
+  inheritance; with Fable authoring and Opus reviewing, the correlation is much weaker.
 
 ## Tier 1 — Codex (default)
 

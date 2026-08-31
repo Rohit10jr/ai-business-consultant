@@ -59,8 +59,9 @@ re-reporting them: Part 0 is done.
 
 ## Step 2: Dispatch one fresh reviewer
 
-Use the **Agent tool** to spawn exactly one `general-purpose` reviewer, **with
-`model: "opus"`** (`CLAUDE.md` -Which model a subagent runs on). It gets a fresh
+Use the **Agent tool** to spawn exactly one `general-purpose` reviewer — **never a fork**,
+which would inherit the reasoning that built the case and defeat the whole step. It gets a
+fresh
 context, so it has not seen the reasoning that produced the case — that is the point. Pass
 everything it needs **inline in the prompt**, and give it a whitelist of what it may open
 itself. Replace every `<...>` before dispatching. The prompt is:

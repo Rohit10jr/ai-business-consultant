@@ -478,23 +478,21 @@ class SetupTests(unittest.TestCase):
 
 
 
-class SubagentModelTests(unittest.TestCase):
-    """Every dispatched subagent names its model at the dispatch point.
+class SubagentDispatchTests(unittest.TestCase):
+    """What a dispatched subagent must be - and what is deliberately not pinned.
 
-    Inheritance is the failure this pins. Phases 3-5 ran every graded subagent on
-    whatever model the parent happened to be started on, because nothing said
-    otherwise - not a decision anyone made, just the default. The rule lives in
-    CLAUDE.md, and it is repeated at each dispatch because a rule in another file
-    has to be remembered at the moment of spawning, which is exactly when a hurried
-    model is thinking about the prompt instead.
+    **Fresh context is a product rule; the model is not.** A fork inherits the
+    reasoning that produced the work, which destroys the point of a reviewer, so
+    the command files forbid one. Which model runs is the operator's choice on
+    their own budget, so the command files say nothing about it - a preference of
+    ours hard-coded here would override whoever clones this repo.
+
+    The development convention (this repo's agents dispatch on opus) lives in
+    CLAUDE.md, scoped to the agent building the repo, and reaches command runs by
+    inheritance rather than by instruction.
     """
 
-    MODEL = 'model: "opus"'
-
     def dispatching_commands(self):
-        # A command dispatches if it names the Agent tool or general-purpose in a
-        # sentence that spawns one - as opposed to the closing rule that every file
-        # carries about what any subagent it spawns must be told.
         out = []
         for path in sorted(COMMANDS.glob("*.md")):
             text = path.read_text(encoding="utf-8")
@@ -503,30 +501,46 @@ class SubagentModelTests(unittest.TestCase):
         self.assertTrue(out, "no dispatching commands found")
         return out
 
-    def test_every_dispatch_names_the_model(self):
+    def test_every_dispatch_is_general_purpose_and_forbids_a_fork(self):
         for name, text in self.dispatching_commands():
             with self.subTest(command=name):
-                # assertIn on a whole command file dumps the file on failure; say it short.
                 self.assertTrue(
-                    self.MODEL in text,
-                    f"{name} dispatches a subagent without naming its model. "
-                    f"Add {self.MODEL} at the dispatch point - see CLAUDE.md, "
-                    "'Which model a subagent runs on'",
+                    "general-purpose" in text,
+                    f"{name} dispatches without naming general-purpose",
+                )
+                self.assertTrue(
+                    "never a fork" in text or "never forks" in text,
+                    f"{name} dispatches a subagent without forbidding a fork. A fork "
+                    "inherits the context that produced the work, which is the one thing "
+                    "a fresh reviewer must not have",
                 )
 
-    def test_the_policy_is_recorded_and_explains_itself(self):
+    def test_command_files_do_not_pin_a_model(self):
+        # The harness ships to operators who pay for their own runs. Hard-coding a
+        # model here overrides them, and this test is what stops it creeping back.
+        for name, text in self.dispatching_commands():
+            with self.subTest(command=name):
+                for pinned in ('model: "opus"', "model: 'opus'", 'model: "sonnet"',
+                               'model: "haiku"', 'model: "fable"'):
+                    self.assertNotIn(
+                        pinned, text,
+                        f"{name} pins {pinned}. Which model runs is the operator's "
+                        "choice; the development convention belongs in CLAUDE.md",
+                    )
+
+    def test_claude_md_scopes_the_convention_to_this_repo(self):
         claude = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
         self.assertIn("Which model a subagent runs on", claude)
-        self.assertIn(self.MODEL, claude)
-        # The reason has to travel with the rule, or the next person changing the
-        # model will not know which half of the split they are moving.
-        self.assertIn("inheritance is what put the whole of", claude.lower())
+        self.assertIn('model: "opus"', claude)
+        # The scoping sentence is the load-bearing one: without it the next reader
+        # copies the rule into a command file again.
+        self.assertIn("It is not a rule the harness ships", claude)
+        self.assertIn("Inheritance cascades", claude)
 
-    def test_forks_are_named_as_unredirectable(self):
-        # A fork ignores `model`. Someone will reach for one as a convenience.
+    def test_claude_md_keeps_the_fork_caveat_and_asks_which_model_ran(self):
         claude = (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8")
         self.assertIn("cannot be redirected", claude)
-        self.assertIn("do not switch one to a fork", claude.lower())
+        self.assertIn("Say which model ran", claude)
 
 
 if __name__ == "__main__":
