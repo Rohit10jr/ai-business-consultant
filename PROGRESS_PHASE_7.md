@@ -79,7 +79,7 @@ harness's.
 | U4 | `/review acme` | **FAILED** — precondition never existed; the reviewer behaved correctly |
 | U5 | `/setup frameworks` | **PASSED** |
 | U6 | `/rank acme --all` | **PASSED** — mechanism exact; the item's literal numbers did not reproduce |
-| U7 | the whole pipeline cold | not yet run |
+| U7 | the whole pipeline cold | **IN PROGRESS** — 5 of 7 commands done, killed by a session limit in `/review`, resumed |
 | U8 | `/investigate acme` with 2+ slugs | **PASSED** — both clauses |
 
 ---
@@ -837,3 +837,134 @@ because a whitelist breach discovered by the breaching party is still a breach, 
 the `/synthesize` dispatch that followed carried an explicit ban on globbing a directory.
 Also noted by that run: `findings.json` and `investigation.json` were read via scripts rather
 than the Read tool, on size grounds (641 KB / 859 KB).
+
+---
+
+## U7 — the whole pipeline cold — **IN PROGRESS**
+
+Model: Opus. One agent, `/scope` → `/outcome`. Report:
+`scratch/acme/u7/U7-full-pipeline.md`, written incrementally after each command.
+
+### The reset, stated exactly
+
+Before dispatch, `engagements/acme/` was cut back to `corpus/` and `scope.md` alone.
+Removed: `findings.json`, `investigation.json`, `recommendation.md` — everything U1–U8 wrote.
+Also moved out: `findings.PRE-FIX-BACKUP.json`, the undocumented fifth file noted in the
+pre-flight; it is written by no command and its presence could only confuse a cold run.
+Every removed file was copied first to `scratch/acme/07-pre-u7-state/`, and the state as it
+stood before any item ran is at `scratch/acme/00-starting-state/`. `practice/tracker.csv`
+was left with its two existing rows, which `/outcome` is expected to append to.
+
+### Where it stopped, and why
+
+| Command | State | Artifact written |
+|---|---|---|
+| `/scope acme` | **DONE** | `scope.md` 12:40 |
+| `/discover acme` | **DONE** | 12:52 |
+| `/rank acme` | **DONE** | `findings.json` 13:00 |
+| `/investigate acme` (3 slugs) | **DONE** | `investigation.json` 13:14 |
+| `/synthesize acme` | **DONE** | `recommendation.md` 13:21 |
+| `/review acme` | **killed mid-verification** | — |
+| `/outcome acme` | **not reached** | `tracker.csv` still at its 2 pre-existing rows |
+
+The kill was an API session limit — `rate_limit, HTTP 429 … resets 3:50pm` — not a harness
+failure. It struck inside `/review`'s Step 3, where the run had the reviewer's critique and
+was reproducing every number behind a kill or wound before accepting any of it. `RUNBOOK.md`
+fail-stops only on a second death at the same point for environment reasons, so the run was
+resumed at 16:38 after the limit reset, in the same agent with its context intact.
+
+**Deviation, recorded rather than glossed:** the phase gate asks that U7 ran "as one
+continuous sitting … with nothing changed in between". The *nothing changed* half holds
+strictly — no file in the repo was touched during the gap, and the resumed agent is the same
+context, not a fresh one. But it was not one unbroken sitting, and this record should not
+claim it was. The incremental-report requirement is what made the gap survivable: sections
+1–5 were already on disk (55 KB) when the agent died.
+
+### What the five completed commands produced
+
+**`/scope`** re-derived the baseline this run and it agreed with the existing file, so the
+scripted "confirm when the derivation agrees" applied: **19.7236% contribution margin, Q1
+FY26**, question and `done_when`/`out_of_scope` kept as the owner directed.
+
+**`/discover` + `/rank` reached a completely different answer from the previous engagement
+on the same corpus.** Seven findings, not eleven, and a different order:
+
+| score | slug | verdict | type | calibration |
+|---|---|---|---|---|
+| 75 | `discount-code-stacking` | pursue | discount-policy | 0 |
+| 72 | `supplier-b-return-rate` | consider | returns-quality | 0 |
+| 72 | `revenue-per-order-decline` | consider | shipping-logistics | 0 |
+| 72 | `courier-rate-annual-rises` | consider | shipping-logistics | 0 |
+| 70 | `meta-cac-doubled` | consider | channel-spend | **−8** |
+| 63 | `meta-share-of-spend` | consider | channel-spend | **−8** |
+| 42 | `warehouse-rent-step` | park | fixed-cost | 0 |
+
+The `−8` from U5's table reached `/rank` on both channel-spend findings, so the
+`/outcome` → `/setup` → `/rank` calibration loop closes end to end. That is U7 earning its
+keep already.
+
+### Finding 27 — "the top three by score" is undefined against a three-way tie
+
+Second place is a **three-way tie at 72**. The owner's scripted answer — the top three by
+score — does not resolve it, and neither does `rank.md`. The run investigated
+`discount-code-stacking`, `courier-rate-annual-rises` and `revenue-per-order-decline`,
+dropping `supplier-b-return-rate` on an unstated tie-break.
+
+That dropped finding is the one the previous engagement called the highest-impact thing the
+client did not already know. A cold rerun on the same corpus therefore did not investigate
+it — not because it scored lower, but because it tied and lost a coin-toss the harness does
+not document. Compare Finding 19: `rank.md` is silent on rounding at a tie too. Not fixed.
+
+### `/investigate` — the validator passes again, and all three movement shapes appear
+
+```
+$ python tools/validate_findings.py engagements/acme/investigation.json
+validate_findings: OK - 3 investigation(s), every alternative carries its query and the decomposition reconciles
+exit=0
+```
+
+| slug | strength | `recoverable_at_most` | movement | `denominator_delta` |
+|---|---|---|---|---|
+| `discount-code-stacking` | established | ₹6,483.05 | 19.7236 → 20.5395 (+0.8158) | 6,483.05 |
+| `courier-rate-annual-rises` | established | ₹11,267.11 | 19.7236 → 21.5080 (+1.7844) | **0.0** |
+| `revenue-per-order-decline` | partial | ₹19,570.95 | 19.7236 → 21.4627 (+1.7391) | 40,023.17 |
+
+Three causes, three different denominator behaviours — one moving with the numerator, one
+provably unchanged, one moving independently. Fix 1's schema handled all three, cold, on
+findings nobody had designed it against. This is the strongest evidence in the phase that
+fix 1 generalises beyond the Supplier B case it was written from.
+
+Overlaps, all from executed queries: `courier` × `discount` **63**, `courier` ×
+`revenue-per-order` **534**, `discount` × `revenue-per-order` **63**. Again no pair at zero —
+Finding 21 reproducing on an entirely different set of causes, which strengthens it
+considerably.
+
+### `/synthesize` — checker clean, and an option ladder that goes backwards
+
+```
+$ python tools/check_recommendation.py …recommendation.md …investigation.json …scope.md
+check_recommendation: OK - every figure in recommendation.md traces to the investigation, the
+baseline, or shown arithmetic; every ceiling is rupees from recoverable_at_most; every movement
+is a recomputed ratio
+exit=0
+```
+
+| Option | Ceiling | Movement |
+|---|---|---|
+| A — turn off code stacking | ₹6,483.05 | +0.8158 pts |
+| B — A, plus tender the carriers | ₹11,267.11 | **+1.7844 pts** |
+| C — all three, incl. the order-value programme | ₹19,570.95 | **+1.7391 pts** |
+
+### Finding 28 — adding a third cause makes the recommendation look worse
+
+Option C has the largest rupee ceiling (₹19,570.95) and a **smaller** movement than Option B
+(+1.7391 against +1.7844). Doing more moves the margin less, in the document a founder reads.
+
+The mechanism is Finding 21 again. No pair records `shared_rows: 0`, so each option is sized
+on its largest single cause — and "largest" is chosen by rupees while the `Movement:` line is
+copied from that same cause. `revenue-per-order-decline` has more rupees than
+`courier-rate-annual-rises` but a smaller movement, so the ladder inverts between the two
+columns. `synthesize.md` picks the sizing cause by one metric and reports the other beside
+it, and nothing checks that the two agree in direction. Not fixed.
+
+The rest of U7 — `/review` and `/outcome` — is still running.
