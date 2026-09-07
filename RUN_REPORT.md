@@ -278,9 +278,11 @@ bad investigation for it to kill; `/outcome`; and the calibration loop through
 
 **Replaced by phase 7's cold run of 2026-09-07.** The previous engagement section was written
 under the ceiling rule phase 6 corrected, and by a session that had built the harness. This
-one comes from a single continuous run of `/scope` → `/outcome` by an agent that read no
-fixture, no plan and no earlier run's output. Every ceiling below is in rupees and every
-movement is a ratio recomputed over both terms, as fix 1 requires.
+one comes from one agent running `/scope` → `/outcome` in order, reading no fixture, no plan
+and no earlier run's output, with nothing changed between commands. It was **not** one
+unbroken sitting: an API session limit killed it inside `/review` and it was resumed in the
+same agent after the limit reset, with no file touched in the gap. Every ceiling below is in
+rupees and every movement is a ratio recomputed over both terms, as fix 1 requires.
 
 **Read the last section first if you read only one.** The pipeline completed and reached the
 wrong answer, and that is the useful result.

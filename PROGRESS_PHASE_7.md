@@ -435,6 +435,34 @@ recommendation exists — U3 refused to write one. `/review` was therefore run a
 ₹631,425.85. Wounding them is the correct reading of the document in front of it. The item
 fails because its precondition was never met, not because `/review` misbehaved.
 
+### The output that failed, verbatim
+
+The item fails on the ceilings being wounded. The document's own lines, and the record they
+contradict, reproduced by this context after the run:
+
+```
+$ grep -n "7\.3044\|46,121\.67\|9\.4483" engagements/acme/recommendation.md
+6:> Supplier B cause moves the baseline **19.72% → 24.74%, ≈ +5.02 pts**, not 7.30; Option B's
+8:> ceilings (₹46,121.67; ₹13,537.11) stand. `RUN_REPORT.md` carries the reviewer's finding
+19:**1. … Ceiling 7.3044 pts of Q1 FY26 contribution margin [S · recoverable_at_most], Rs 46,121.67 [Arithmetic]. …**
+34:- Ceiling: 7.3044 pts of Q1 FY26 contribution margin [S · recoverable_at_most], Rs 46,121.67 [Arithmetic], of a baseline of 19.7% [scope.md]
+42:- Ceiling: up to 9.4483 pts of Q1 FY26 contribution margin [Arithmetic], Rs 59,658.78 [Arithmetic] …
+
+$ python -c "…investigation.json…"   # what the record actually held at the time
+supplier-b-returns-negative-contribution  ceil=45453.71 rupees  move=19.72->24.68  d=4.96
+```
+
+and the command file that never asks anyone to notice the difference:
+
+```
+$ grep -ni "stale\|out of date\|consistent with\|matches investigation\|superseded" .claude/commands/review.md
+(no output)
+```
+
+`recommendation.md` was byte-identical after the run — 34,089 bytes, sha256
+`2539584c8be0d344…`. Fuller output, including the reviewer's thirteen edits, is in
+`scratch/acme/U4-review.md`.
+
 ### The one piece of evidence U4 did yield for its own question
 
 The reviewer did not wound the denominator point indiscriminately — it scoped it per cause:
@@ -854,7 +882,7 @@ than the Read tool, on size grounds (641 KB / 859 KB).
 
 ---
 
-## U7 — the whole pipeline cold — **IN PROGRESS**
+## U7 — the whole pipeline cold — **PASSED** (all seven commands; verdict at the end of this section)
 
 Model: Opus. One agent, `/scope` → `/outcome`. Report:
 `scratch/acme/u7/U7-full-pipeline.md`, written incrementally after each command.
@@ -869,7 +897,11 @@ Every removed file was copied first to `scratch/acme/07-pre-u7-state/`, and the 
 stood before any item ran is at `scratch/acme/00-starting-state/`. `practice/tracker.csv`
 was left with its two existing rows, which `/outcome` is expected to append to.
 
-### Where it stopped, and why
+### Where it was interrupted, and how it finished
+
+All seven commands completed. The table below records the interruption for the record — the
+`/review` and `/outcome` rows show where the run was killed and that both were finished after
+the resume, not that they were abandoned.
 
 | Command | State | Artifact written |
 |---|---|---|
@@ -878,8 +910,8 @@ was left with its two existing rows, which `/outcome` is expected to append to.
 | `/rank acme` | **DONE** | `findings.json` 13:00 |
 | `/investigate acme` (3 slugs) | **DONE** | `investigation.json` 13:14 |
 | `/synthesize acme` | **DONE** | `recommendation.md` 13:21 |
-| `/review acme` | **killed mid-verification** | — |
-| `/outcome acme` | **not reached** | `tracker.csv` still at its 2 pre-existing rows |
+| `/review acme` | killed mid-verification, **DONE after resume** | — |
+| `/outcome acme` | **DONE after resume** | nothing — 0 rows written, by design; see below |
 
 The kill was an API session limit — `rate_limit, HTTP 429 … resets 3:50pm` — not a harness
 failure. It struck inside `/review`'s Step 3, where the run had the reviewer's critique and
@@ -1088,20 +1120,53 @@ strictly, "one continuous sitting" does not); and `/outcome` wrote zero rows, so
 |---|---|
 | Tests | **190 passing**, 0 skipped, 0 failing — before the run and after |
 | Client-data guard | **verified failing on a staged fixture**: `engagements/zzz-guard-proof/pnl.csv` staged → `1 failure(s) … under 'engagements/' - client data never enters git`, exit 1; unstaged → `OK`, exit 0 |
-| Review | tier 1 — Codex (`codex-cli 0.151.0`), see below |
+| Review | tier 1 — Codex (`codex-cli 0.151.0`), 127k tokens. Verdict: *"broadly an honest record, not a flattering one"*. 3 findings, all applied — see below |
 | Phase gate | **6/6** — see the table below |
-| Commits | 8 on this branch, each from `.git/COMMIT_MSG`, none mentioning Claude |
+| Commits | 10 on this branch, each from `.git/COMMIT_MSG`, none mentioning Claude |
 
 ### The phase's own gate, item by item
 
 | # | Must | Result |
 |---|---|---|
 | 1 | Every one of U1–U8 recorded passed / failed / not reached, none silently absent | **PASS** — all eight recorded; 5 passed, 3 failed, 0 not reached |
-| 2 | A failed item carries the output that failed, verbatim | **PASS** — U1, U3 and U4 each carry the real command output with exit codes, reproduced by this context after the run |
+| 2 | A failed item carries the output that failed, verbatim | **PASS** — U1 and U3 carry the failing command output with exit codes; U4's failure is a reviewer verdict rather than a command error, so it carries the document's own contradicting lines and the empty `grep` over `review.md` instead. All reproduced by this context. The prose-only version of U4 was a review finding, applied |
 | 3 | U7 ran as one continuous sitting, from a reset engagement, nothing changed in between | **PASS with a stated deviation** — reset recorded exactly; nothing changed between commands; but the run was killed by a session limit and resumed, so it was not one unbroken sitting. Recorded rather than claimed clean |
 | 4 | Nothing fixed mid-run; anything repaired named, with why it stopped the run being *possible* | **PASS** — nothing was repaired. No file in `.claude/` or `tools/` was touched by any run or by this context. The only non-documentation change on this branch is `practice/frameworks.md`, which is `/setup`'s own output in U5 |
 | 5 | `RUN_REPORT.md`'s engagement section replaced by this run's output, under the corrected ceiling rule | **PASS** — replaced, sourced from U7's artifacts, every ceiling in rupees and every movement a recomputed ratio |
 | 6 | The progress file opens with one paragraph answering: did the pipeline run end to end? | **PASS** — first paragraph |
+
+## Findings from review
+
+Tier 1, Codex, `codex exec -s read-only` with the request in `scratch/REVIEW_REQUEST_PHASE7.md`,
+127k tokens. Output at `scratch/codex_review_phase7.txt`. It opened:
+
+> This is broadly an honest record, not a flattering one; the main exception is that a couple
+> of gate/status labels are cleaner than the evidence supports.
+
+Three findings. **All three were about this record's own accuracy, not about the harness** —
+so applying them is not a breach of the no-fix rule, which governs `.claude/` and `tools/`.
+
+- **`RUN_REPORT.md`'s engagement preface overclaimed** — it said "a single continuous run"
+  while the progress file says U7 was not one unbroken sitting. **Applied**: the preface now
+  states the session-limit kill and the resume in the same sentence as the claim, so a reader
+  of the engagement section alone is not misled.
+- **The gate claimed U1, U3 and U4 all carry verbatim failing output "with exit codes"; U4
+  did not** — it summarised the reviewer's result in prose and a table. Fair, and the gate
+  claim was the thing at fault rather than the evidence. **Applied**: U4 now carries the
+  document's own contradicting lines, the record they contradict, and the empty `grep` over
+  `review.md`, all reproduced by this context.
+- **The U7 section was still headed IN PROGRESS with a stale state table** saying `/outcome`
+  was not reached, contradicted by the verdict below it. **Applied**: heading and table
+  corrected; the interruption is still shown, but as an interruption rather than an ending.
+
+Confirmed right by the reviewer, each traced to the file rather than taken on trust: all eight
+U-items present; U6's mechanism pass defensible with its drift disclosed; U8's extra
+`/synthesize` dispatch defensible and disclosed; **Finding 6 real** (`synthesize.md:103`
+against U3's pass condition); **Finding 2 fair** (`investigate.md:290`); **Finding 17 holds**
+(`rank.md:37`); and the no-fix claim verified independently with git — only
+`PROGRESS_PHASE_7.md`, `RUN_REPORT.md` and `practice/frameworks.md` differ from the branch
+point, with nothing under `.claude/commands/` or `tools/` touched. It also confirmed the three
+weak-conduct disclosures are not buried. It did not consult `EXPECTED.md`.
 
 ## Decisions made
 
