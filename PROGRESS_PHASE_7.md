@@ -76,7 +76,7 @@ harness's.
 | U1 | `/investigate acme supplier-b-returns-negative-contribution` | **FAILED** — on the validator condition only; the two figure conditions passed |
 | U2 | `/investigate acme meta-cac-doubled` | **PASSED** |
 | U3 | `/synthesize acme` | **FAILED** — pass condition unreachable; `/synthesize` itself refused correctly |
-| U4 | `/review acme` | not yet run |
+| U4 | `/review acme` | **FAILED** — precondition never existed; the reviewer behaved correctly |
 | U5 | `/setup frameworks` | not yet run |
 | U6 | `/rank acme --all` | not yet run |
 | U7 | the whole pipeline cold | not yet run |
@@ -398,3 +398,110 @@ too: `1 problem(s)` where there are at least two. Not fixed.
 figures and whose headline `7.3044 pts` contradicts the `5.212` now in the record. Nothing
 in the command file covers this state, and nothing stops a human running `/review acme`
 against it. U4 is about to do exactly that. Not fixed.
+
+---
+
+## U4 — `/review acme` — **FAILED**
+
+Model: Opus. 106 tool calls, 212k tokens, 23 minutes. Report: `scratch/acme/U4-review.md`.
+`recommendation.md` byte-identical after the run (34,089 bytes, sha256 `2539584c8be0d344…`);
+nothing under `engagements/` was written.
+
+**A first attempt at this item was interrupted by the user** after ~30 minutes and could not
+be resumed; its partial query scripts are preserved unread at
+`scratch/acme/U4-cancelled-partial/` and contributed nothing to what follows. The run below
+is a fresh agent that redid the work from scratch.
+
+Pass condition: *the reviewer no longer wounds the ceilings on the denominator point.*
+**It wounds them.** U4 is recorded FAILED.
+
+The condition presupposes "on the regenerated recommendation", and no regenerated
+recommendation exists — U3 refused to write one. `/review` was therefore run against the
+**pre-fix** `recommendation.md`, whose ceilings genuinely are rupees over a frozen
+₹631,425.85. Wounding them is the correct reading of the document in front of it. The item
+fails because its precondition was never met, not because `/review` misbehaved.
+
+### The one piece of evidence U4 did yield for its own question
+
+The reviewer did not wound the denominator point indiscriminately — it scoped it per cause:
+
+| cause | document says | record says | objection applies? |
+|---|---|---|---|
+| Supplier B (S) | 7.3044 pts | +4.96 pts | **yes** — overstates by 2.34 pts |
+| return rate (R) | 5.212 pts | — | **yes** — overstates by 1.52 pts |
+| Meta (M) | 2.1439 pts | +2.1439 pts | **no** — `denominator_delta` is 0.0, so the figure is exactly right |
+| Option B | 9.4483 pts | +6.92 pts | **yes** — overstates by 2.53 pts |
+
+That M is exempt is the informative part: a reviewer that understood the rule as "all points
+figures are suspect" would have wounded it too. So on a document written *after* fix 1, with
+movements recorded properly, this objection would not fire. That is indirect evidence for
+what U4 was built to test, and it is the most that can be said without the regenerated
+document U3 never produced.
+
+It also means **the superseded banner at the top of `recommendation.md` is wrong** — it
+claims every ceiling overstates and that the rupee ceilings "stand". Both fail now: the
+rupee ceiling is ₹45,453.71, not the ₹46,121.67 the note preserves, and the movement is
++4.96, not the +5.02 it offers. Per `TASK.md` the note was not edited.
+
+### Finding 9 — `review.md` never asks whether the document matches the record
+
+`grep -ni "stale|out of date|consistent with|matches investigation|superseded"
+.claude/commands/review.md` returns **nothing**. There is no instruction anywhere in the
+command file to check `recommendation.md` against the current `investigation.json`.
+
+The document under review cites ₹46,121.67 / 7.3044 pts; the record holds ₹45,453.71 /
++4.96 pts. It predates two of the three investigations it cites. Step 1's validator does put
+the mismatches on screen — but frames them as "figures from nowhere" and instructs the run
+**not to stop on them**, so a `/review` that follows the file exactly reviews a superseded
+document without ever being told it is one.
+
+Asked directly whether it caught this by following the command file, the run answered
+honestly: *"the command file surfaced the evidence, the prompt made me read it as
+staleness."* Without that instruction in my dispatch, this would not have been reported.
+Not fixed.
+
+### Finding 10 — `review.md` has no branch for a reviewer that works and does not deliver
+
+The reviewer subagent ran seven queries and then went silent. It took **two `SendMessage`
+nudges** to extract the critique it had already produced (13 edits: 6 kills, 7 wounds).
+`review.md` has no timeout, no liveness check and no fallback: a passive run would have
+ended with Part 0's validator output and nothing else, and — because Part 0 is explicitly
+not grounds to stop — that empty result would have looked like a completed review. Not fixed.
+
+### Finding 11 — a passage labelled "Claim, verbatim" is not verbatim
+
+`recommendation.md:19` quotes the Supplier B claim under the label **"Claim, verbatim:"** and
+ends it *"Remainder: nothing unexplained"*. U1's record states that preventing the excess
+returns leaves **₹6,366.42** of the fall in contribution per order unexplained.
+
+```
+$ grep -c "6366.42\|6,366.42" engagements/acme/investigation.json   → 3
+$ grep -c "6,366.42\|6366.42" engagements/acme/recommendation.md    → 0
+```
+
+The caveat is dropped and replaced with its opposite, under a label promising fidelity. Not
+fixed.
+
+### Finding 12 — the frozen denominator inverts the recommendation, not just the number
+
+The most consequential thing the run found, and the clearest argument that fix 1 mattered.
+`recommendation.md:147` scales Option C's effect through the frozen denominator:
+
+```
+- -3.445 pts = Rs -21,752.17 * 7.3044 pts / Rs 46,121.67
+```
+
+so exit reads as a **negative** −3.445 pts. Recomputed properly — exit also removes the
+segment's ₹50,103.05 of net revenue, so the denominator falls — **exit moves the baseline
++5.44 pts against repair's +4.96.** The document declines to compute exactly that figure
+(`recommendation.md:50`: *"that figure is not computed here"*) and then recommends against
+exit on the strength of the negative it produced instead.
+
+The frozen denominator did not merely overstate a ceiling. It reversed which option looks
+better, in the document a founder would read. Not fixed.
+
+Verdicts overall: `return-rate-doubled` **wounded**, `supplier-b-returns-negative-contribution`
+**wounded**, `meta-cac-doubled` **survives** — with the document's rendering of it killed,
+since `recommendation.md` calls it "partial" with an "open" alternative where the record now
+says `established` and `ruled_out`. No investigation measurement was killed; all reproduce
+to 4 dp. Nothing was applied.
