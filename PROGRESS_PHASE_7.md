@@ -77,7 +77,7 @@ harness's.
 | U2 | `/investigate acme meta-cac-doubled` | **PASSED** |
 | U3 | `/synthesize acme` | **FAILED** — pass condition unreachable; `/synthesize` itself refused correctly |
 | U4 | `/review acme` | **FAILED** — precondition never existed; the reviewer behaved correctly |
-| U5 | `/setup frameworks` | not yet run |
+| U5 | `/setup frameworks` | **PASSED** |
 | U6 | `/rank acme --all` | not yet run |
 | U7 | the whole pipeline cold | not yet run |
 | U8 | `/investigate acme` with 2+ slugs | not yet run |
@@ -505,3 +505,88 @@ Verdicts overall: `return-rate-doubled` **wounded**, `supplier-b-returns-negativ
 since `recommendation.md` calls it "partial" with an "open" alternative where the record now
 says `established` and `ruled_out`. No investigation measurement was killed; all reproduce
 to 4 dp. Nothing was applied.
+
+---
+
+## U5 — `/setup frameworks` — **PASSED**
+
+Model: Opus. 19 tool calls, 66k tokens, 5 minutes. Report:
+`scratch/acme/U5-setup-frameworks.md`.
+
+`documents/practice/` does not exist, so Step 0's tracker-only path applied and the run was
+Step 2b alone. Pass condition met on both halves.
+
+**The arithmetic, from the file's own rule.** The run quoted the formula from
+`practice/frameworks.md` lines 40–42 — `round(25 × (accepted − rejected) / (rows + 2))`,
+capped at +10, half away from zero — and substituted term by term:
+
+| finding type | rows | accepted | rejected | substitution | adjustment |
+|---|---|---|---|---|---|
+| `channel-spend` | 1 | 0 | 1 | `25 × (0−1) / 3 = −8.333` | **−8** |
+| `supplier` | 1 | 1 | 0 | `25 × (1−0) / 3 = +8.333` | **+8** |
+
+Exactly the `supplier +8` / `channel-spend −8` the item requires. The run also confirmed
+`setup.md`'s inline example is term-for-term identical to the file's rule — the disagreement
+my dispatch told it to watch for did not occur, so fix 2's "the file is the authority"
+holds. The written diff is clean and minimal:
+
+```diff
+-| _none yet_ | | | | | |
++| `channel-spend` | 1 | 0 | 0 | 1 | −8 |
++| `supplier` | 1 | 1 | 0 | 0 | +8 |
+```
+
+`tracker.csv` untouched (708 bytes, mtime unchanged); `domains.md` untouched. The full test
+suite still passes — **190 tests, 0 failures** — including `test_calibration_rule.py`, which
+reads the formula from the file and checks every live row against it. The rule and its table
+have not drifted apart.
+
+**Confidentiality — verified independently, not taken on trust.** The run's own check ran
+before and after writing, testing client names, quoted phrases, distinctive-word overlap and
+shared 3-grams. I then ran my own against the written file:
+
+```
+$ grep -ci "meta|october|size chart|marketing lead|founder|acme|don't tell me|re-cut|Supplier B" practice/frameworks.md
+0
+```
+
+Only `finding_type` and `outcome` fed the table; `notes` was read solely to test for a
+`supersedes` prefix, which did not fire. `setup.md` Step 2b forbids the crossing outright —
+*"**`pushback` and `notes` never cross** — not quoted, not paraphrased, not summarised"* —
+rather than merely omitting to ask for it, which is the right shape for that rule.
+
+### Deviation — the run made a second edit beyond Step 2b's "one change"
+
+The italic note under the table said the table had been cleared and *"`/setup frameworks`
+regenerates the table … on its next run and the human confirms it then"* — a sentence this
+run made false the moment it wrote the table. The run rewrote that note, preserving the
+phase-6 history it recorded, and flagged the judgement call itself. The strict reading of
+Step 2b was to leave a now-false sentence in place. Recorded as a deviation rather than a
+finding: `/setup` owns this file, and the edit is inside its own ownership.
+
+### Finding 13 — the human gate on `/setup` was exercised by the party that wrote the run
+
+`TASK.md`'s scripted answers cover `/scope`, `/rank`, `/investigate` and `/outcome`. They do
+not cover `/setup`, which also stops and asks for confirmation. **I supplied that answer**
+— "confirm, but only if the arithmetic matches the formula as written in the file; if it
+does not, do not confirm and report the mismatch" — and told the run to record that its
+answers came from the orchestrator rather than the owner. It did.
+
+The condition was met, so the confirmation was sound. But this is the one human gate in the
+run whose answer was not the owner's, and it is worth naming: a gate confirmed by the same
+party that dispatched the run is weaker evidence than the other four.
+
+### Finding 14 — `practice/README.md` documents a tracker schema that no longer exists
+
+It lists `date, client, finding, recommendation, outcome, pushback, notes`. Every column
+Step 2b actually depends on — `finding_type`, `recorded_on`, `finding_slug`, `sector`,
+`size_band`, `engagement_type` — is absent from it. An implementer keying on the documented
+`date`/`finding` columns would fail against the real file. Not fixed; `/setup` does not own
+`README.md`.
+
+### Finding 15 — Step 3 orders arithmetic against a file a cold run may not read
+
+Step 3 has `/setup` check a proposed reweighting against `docs/WORKED_EXAMPLE.md`. Moot here
+— with no source documents there was no reweight to propose — but had `documents/practice/`
+held anything arguing for one, the step would have been unexecutable under a whitelist that
+excludes `docs/`. Recorded because it did not bite by luck rather than by design.
