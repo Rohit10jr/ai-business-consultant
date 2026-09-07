@@ -10,11 +10,14 @@ It is **not** a chatbot, not a report generator, and not an autonomous agent. It
 of prompt-defined commands a human triggers, passing state through plain files on disk,
 with a hard stop before anything leaves the building.
 
-**The harness is built.** Phases 0-6 are merged: eight commands, the client-data guard, the
-synthetic corpus, three validators. What remains is not building — see `TASK.md` for what
-this session is for. **If your assignment is to run the pipeline, you are the instrument,
-not the mechanic: nothing in `.claude/commands/` or `tools/` gets edited because a run went
-wrong. A failure is a finding to record, and fixing it is a later phase's brief.**
+**The harness is built, and it has had its cold run.** Phases 0-7 are merged: eight
+commands, the client-data guard, the synthetic corpus, three validators — and one
+end-to-end run that produced the wrong answer and 31 findings saying exactly where
+(`PROGRESS_PHASE_7.md`). See `TASK.md` for what this session is for. **If your assignment
+is to run the pipeline, you are the instrument, not the mechanic: nothing in
+`.claude/commands/` or `tools/` gets edited because a run went wrong. A failure is a
+finding to record, and fixing it is a later phase's brief. If your assignment is to fix,
+the licence runs exactly as far as a numbered finding — no further.**
 
 ## Read these first
 
