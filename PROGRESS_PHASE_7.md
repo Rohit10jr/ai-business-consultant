@@ -78,7 +78,7 @@ harness's.
 | U3 | `/synthesize acme` | **FAILED** — pass condition unreachable; `/synthesize` itself refused correctly |
 | U4 | `/review acme` | **FAILED** — precondition never existed; the reviewer behaved correctly |
 | U5 | `/setup frameworks` | **PASSED** |
-| U6 | `/rank acme --all` | not yet run |
+| U6 | `/rank acme --all` | **PASSED** — mechanism exact; the item's literal numbers did not reproduce |
 | U7 | the whole pipeline cold | not yet run |
 | U8 | `/investigate acme` with 2+ slugs | not yet run |
 
@@ -590,3 +590,108 @@ Step 3 has `/setup` check a proposed reweighting against `docs/WORKED_EXAMPLE.md
 — with no source documents there was no reweight to propose — but had `documents/practice/`
 held anything arguing for one, the step would have been unexecutable under a whitelist that
 excludes `docs/`. Recorded because it did not bite by luck rather than by design.
+
+---
+
+## U6 — `/rank acme --all` — **PASSED**
+
+Model: Opus. 36 tool calls, 157k tokens, 11.5 minutes. Report: `scratch/acme/U6-rank.md`.
+`findings.json` was the only file written.
+
+**The −8 reached `/rank` and was applied at exactly the right magnitude.** That is what the
+item tests, and it holds. The item's literal figures did not reproduce, for a reason phase 6
+documented in advance.
+
+| | phase 6 expected | this run |
+|---|---|---|
+| raw fixability | 80 | **85** |
+| calibration adjustment | **−8** (not −25) | **−8** ✓ |
+| calibrated fixability | 72 | **77** |
+| uncalibrated score | 80 | **83** |
+| final score | ≈77.6 | **81** |
+| verdict | reported, not demanded | **`pursue`** |
+
+The adjustment is −8 exactly; the base differs because a fresh scoring agent scored raw
+fixability 85 rather than 80. `practice/frameworks.md` predicted precisely this — *"Fresh
+scoring agents move raw scores by ±1–3 between runs on their own"* — and the score effect is
+consistent with the rule (−8 × 0.30 weight = −2.4, so 83 → 81). Graded PASSED on the
+mechanism, with the divergence stated here so a reader can disagree.
+
+**The "Calibration moved" line, verbatim:**
+
+```
+Calibration moved nothing.
+```
+
+`rank.md:209–210` defines exactly two valid forms — `"Calibration moved: <slug> #a → #b
+(score x → y, verdict p → q), …"` **or** `"Calibration moved nothing."` — so this is the
+required line, not its absence. And it is correct within the run: `google-cac-flat` was the
+only finding calibration touched, and it held both #2 and `pursue` across the boundary.
+
+### Finding 16 — the line goes silent on the band crossing that actually happened
+
+Against the values **stored** from the previous run, `google-cac-flat` moved a long way:
+
+| | stored (old −25 rule) | this run (−8) |
+|---|---|---|
+| `rank_calibration` | −25 | −8 |
+| `rank_fixability_calibrated` | 55 | 77 |
+| `rank_score` | 72 | 81 |
+| `rank_verdict` | **`consider`** | **`pursue`** |
+
+That is a verdict-band crossing caused by the calibration table changing. The line reports
+`nothing`, because it compares calibrated against uncalibrated *within one run* rather than
+against the stored previous run. `frameworks.md` justifies the whole ±8 design on the claim
+that *"a band crossing is never silent even when the order stands"* — and here the crossing
+that a human would actually notice is silent. The line is doing what `rank.md` specifies;
+what it specifies does not deliver what `frameworks.md` promises. Not fixed.
+
+### Finding 17 — three findings can never be re-scored by any invocation of `/rank`
+
+`rank.md:37`:
+
+> Select findings: those with `status: "new"`; with `--all`, every finding except those
+> [with an investigation entry]
+
+`supplier-b-returns-negative-contribution`, `return-rate-doubled` and `meta-cac-doubled` are
+`status: ranked` (so plain `/rank` skips them) **and** have investigation entries (so `--all`
+excludes them). No invocation reaches them. They still carry `rank_date: 2026-08-26`, no
+`rank_finding_type`, and no calibration, while every other finding now reads `2026-09-07`.
+Not fixed.
+
+### Finding 18 — calibrated and uncalibrated scores share one key, and sort against each other
+
+The direct consequence of 17. After this run:
+
+```
+google-cac-flat        rank_score=81  ← calibrated (raw 83, −8 applied)
+meta-cac-doubled       rank_score=80  ← raw, never typed, never calibrated
+```
+
+`meta-cac-doubled` is a CAC finding that would type as `channel-spend` and draw the same −8,
+but having never been typed it has never had any calibration applied. Its 80 and
+`google-cac-flat`'s 81 sit under the same key and sort against each other, and nothing in the
+file marks one as adjusted and the other as not. Anyone ranking by `rank_score` is comparing
+two different quantities. Not fixed.
+
+Related, and worth the owner's eye: the top three sent to `/investigate` were
+`courier-base-rate-six-percent-every-january` (84), `google-cac-flat` (81) and
+`first-order-return-rate-doubled` (76) — but `meta-cac-doubled` sits at 80, above the third.
+"Top three by score" was applied to the re-ranked subset, which is defensible (the excluded
+three are already investigated), yet the file does not say so.
+
+### Findings 19 and 20 — two small holes in the rubric
+
+- **Rounding is unspecified.** `rank.md` says only "Round to an integer", and
+  `google-cac-flat` landed on exactly **80.5**. Banker's rounding gives 80, half-up gives 81.
+  The run used half-up, citing the practice file's stated convention, and said so. A tie that
+  decides a displayed score should not depend on the runner's choice of rule.
+- **The confidence rubric has no row for `second_derivation: "partial"`**, which is what
+  `/discover` actually writes on **five of seven** findings. The rubric offers `"not
+  possible"`, and both scoring agents silently mapped `partial` onto it. A silent mapping on
+  the majority of findings is not a rubric.
+
+Clean, for the record: 11 findings → 3 excluded by `--all`, 1 vetoed
+(`contribution-margin-bridge-q3-2024-to-q1-fy26`, restates the baseline — the veto phase 3
+built, still firing), 7 scored. All 60 figures carry `query_text`, `rows_in` and `rows_out`.
+The rewrite was verified byte-identical apart from `status` and the `rank_*` keys.
