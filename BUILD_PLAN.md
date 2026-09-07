@@ -9,12 +9,12 @@ Architecture brief for agents building this harness.
 
 | | |
 |---|---|
-| **Shipped** | Nothing. Greenfield |
-| **Branch** | `main` holds docs only; build on `phase-N-<name>` |
-| **Next** | Phase 0 — skeleton, gitignore, CI guard |
+| **Shipped** | The whole pipeline — eight commands, guard, corpus, validators (phases 0–6) — and one cold end-to-end run of it (phase 7) |
+| **Branch** | `main`; work on `phase-N-<name>` |
+| **Next** | Phase 8 — fix the cold run's 31 findings; brief in `PROGRESS_PHASE_7.md` §"For the next phase". Roadmap below, §7 |
 | **Reference** | `D:\02_Personal\01_OpenSource\03_Applications\ai-job-search` (read-only) |
 | **Repo** | `github.com/Rohit10jr/ai-business-consultant` — **private** |
-| **Plan date** | 2026-08-24 |
+| **Plan date** | 2026-08-24 · roadmap updated 2026-09-07 |
 
 ---
 
@@ -185,6 +185,29 @@ README. Its design constraint is worth stating here: **every figure in it must b
 sourced.** If `/review` can kill it by finding a missing query, the gate has measured the
 grounding checker rather than adversarial reasoning, and phase 2 already proved the grounding
 checker works.
+
+### The road from here — status as of 2026-09-07
+
+Where every stage stands, and the order the remaining ones should run. The four candidates
+below §"After phase 5" are now phases 9 onward, and phase 8 sits in front of all of them:
+the cold run surfaced defects that would contaminate each — a second corpus would hit the
+same undocumented tie-break and unpinned thresholds; a handover artifact would render
+recommendations the overlap rule under-sizes; the practice view is pointless while the loop
+can complete without the tracker learning anything (phase 7, Finding 30).
+
+| Stage | Status |
+|---|---|
+| Phases 0–5 — build the eight commands, guard, corpus, calibration loop | **done, merged** |
+| Phase 6 — fix the two defects the first engagement exposed | **done, merged** |
+| Phase 7 — run it cold, let it break (5/8 items passed, 31 findings, none fixed) | **done** — `phase-7-cold-run` |
+| **Phase 8 — fix the 31 findings** (brief: `PROGRESS_PHASE_7.md` §"For the next phase") | **next** |
+| Phase 9 — a second corpus (structurally different client; also de-Acme `investigate.md`'s worked example) | not started |
+| Phase 10 — real-corpus hardening (`.xlsx`/PDF path never exercised; corpus-size ceiling still open) | not started |
+| Phase 11 — handover artifact (render the *accepted* recommendation; needs outcomes recording, post-phase-8) | not started |
+| Phase 12 — the practice view (needs several engagements' tracker rows; follows the later corpora) | not started |
+
+The numbering past 8 is an ordering, not a commitment — `§"After phase 5"` below records
+why each candidate exists, and what each would stress.
 
 ### After phase 5
 
