@@ -1,6 +1,6 @@
 # ai-business-consultant — agent brief
 
-**This repo builds a Claude Code harness that runs a consulting engagement end to end:**
+**This repo is a Claude Code harness that runs a consulting engagement end to end:**
 take a vague client pain, sharpen it into one answerable question, read the client's own
 document corpus, surface candidate findings the client did not know were there, rank them,
 build the case on the top few, have a second agent attack it, and record what the client
@@ -10,8 +10,11 @@ It is **not** a chatbot, not a report generator, and not an autonomous agent. It
 of prompt-defined commands a human triggers, passing state through plain files on disk,
 with a hard stop before anything leaves the building.
 
-Phases 0 and 1 are built, reviewed and merged. Phase 2 onward is a greenfield build
-from a proven pattern - see `TASK.md` for what is done and what is yours.
+**The harness is built.** Phases 0-6 are merged: eight commands, the client-data guard, the
+synthetic corpus, three validators. What remains is not building — see `TASK.md` for what
+this session is for. **If your assignment is to run the pipeline, you are the instrument,
+not the mechanic: nothing in `.claude/commands/` or `tools/` gets edited because a run went
+wrong. A failure is a finding to record, and fixing it is a later phase's brief.**
 
 ## Read these first
 
@@ -20,11 +23,11 @@ Start at [`TASK.md`](TASK.md) — it names your assignment and the reading order
 | File | What it is |
 |---|---|
 | **`TASK.md`** | **The assignment. Start here** |
-| **`BUILD_PLAN.md`** | Architecture, command surface, **the grounding contract (§3)** |
-| **`docs/WORKED_EXAMPLE.md`** | One engagement end to end. What you are building, made concrete |
-| `docs/CONSULTING_METHOD.md` | The domain — what consultants do, as an algorithm |
-| `docs/REFERENCE_PATTERN.md` | The architecture lessons this copies, distilled |
 | `RUNBOOK.md` | The loop, the gate, fail-stop rules, progress format |
+| **`BUILD_PLAN.md`** | Architecture, command surface, **the grounding contract (§3)** |
+| **`docs/WORKED_EXAMPLE.md`** | One engagement end to end — the shape of what the pipeline produces |
+| `docs/CONSULTING_METHOD.md` | The domain — what consultants do, as an algorithm |
+| `docs/REFERENCE_PATTERN.md` | The architecture lessons this copies, distilled. Background for building; skippable for a run session |
 | `AGENTS.md` | The reviewer's brief — read it so you know what you will be judged on |
 | `fixtures/README.md` | The synthetic corpus, and the flawed investigation `/review` must kill |
 

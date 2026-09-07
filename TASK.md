@@ -7,7 +7,7 @@ end. It is built. Phase 7 is the first time anyone runs the whole thing cold.
 
 ## Already on `main` — do not rebuild, do not fix
 
-Eight commands, 189 tests, CI green. `/setup`, `/scope`, `/discover`, `/rank`,
+Eight commands, 190 tests, CI green. `/setup`, `/scope`, `/discover`, `/rank`,
 `/investigate`, `/synthesize`, `/review`, `/outcome`, plus the client-data guard, the
 synthetic corpus, and three validators.
 
@@ -84,6 +84,30 @@ afterwards, once the output is written down and cannot be influenced.
 
 ---
 
+## The human's answers
+
+Several commands stop and ask the human. The human is not in the run, so their answers are
+fixed here in advance — script them into each subagent's prompt verbatim, and require an
+"Answers applied" section in its report. These are the owner's answers; do not improvise
+others, and record faithfully anything a command does that these do not cover.
+
+- **`/scope acme`** (U7 only): overwrite the existing scope — **yes**. Keep the same
+  question and the same baseline if the command re-derives them; confirm the baseline when
+  the derivation is shown and agrees. `done_when` and `out_of_scope` as currently in
+  `scope.md`.
+- **`/rank acme`** — "which findings should `/investigate` pursue?": **the top three by
+  score**.
+- **`/investigate acme`**: the slugs are the three `/rank` named. Any re-investigate
+  prompt: **yes**.
+- **`/outcome acme`**: sector `D2C apparel`, size band `under ₹5 Cr revenue`, engagement
+  type `margin diagnosis`. For the recommended option's rows: the supplier/returns cause —
+  **accepted**, finding type `supplier`, pushback "Ops wants the size chart on the store
+  re-cut before any conversation with Supplier B about corrected stock"; the channel-spend
+  cause — **rejected**, finding type `channel-spend`, pushback "The marketing lead: 'Don't
+  tell me to cut Meta. Tell me what to do instead.' The founder sided with her.", reason
+  "the hold was read as a cut in the run-up to the October sale". Other options: **skip**.
+  Confirm every row shown as written.
+
 ## Starting state
 
 `engagements/acme/` holds `scope.md`, `corpus/` and a `findings.json` from the previous run.
@@ -98,7 +122,10 @@ Two things about it, both intentional:
 `scratch/` still holds every phase 3-6 run's reports and query scripts. **Start from a clean
 `scratch/acme/`** so nothing from a previous run can be mistaken for this one's.
 
-Before anything: `git fetch origin`, confirm you are cut from `origin/main`, run
+Before anything: `git fetch origin`, then confirm the brief you are reading is current —
+this file at the tip of `origin/docs/phase-7-run-brief`, or of `origin/main` once that
+branch has been merged; either is fine, and the tip you find is the commit to cut
+`phase-7-cold-run` from, so the brief travels with the run. Then run
 `python -m unittest discover -s tests -t .` and `python tools/check_no_client_data.py`. If
 either fails, that is a finding and the run stops there.
 

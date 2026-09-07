@@ -13,7 +13,7 @@ first. This file assumes all three, and `TASK.md` carries the per-phase briefs.
 
 | Phase | Branch | Cut from | Progress file |
 |---|---|---|---|
-| 7 | `phase-7-cold-run` | `main` | `PROGRESS_PHASE_7.md` |
+| 7 | `phase-7-cold-run` | `docs/phase-7-run-brief` (or `main` once that branch is merged) | `PROGRESS_PHASE_7.md` |
 
 The eight runtime items phase 6 left `unverified` are the assignment, and they are already
 written with their pass conditions in `PROGRESS_PHASE_6.md`. `TASK.md` carries the framing
@@ -49,6 +49,8 @@ pipeline in one sitting. Run the parts first — they are cheaper, and finding t
 leftovers. Say in the progress file exactly what you cleared.
 
 U7 is one continuous run, `/scope` through `/outcome`, with nothing changed in between.
+Its `/outcome` step **appends** new rows to `practice/tracker.csv` — that is expected;
+the file is append-only and gitignored, and the earlier rows stay.
 
 ### Do not idle
 
@@ -72,11 +74,13 @@ carries it down. Record which model each run used in the progress file.
 
 ## Before you begin
 
-1. **Sync before you read anything.** `git fetch origin`, then check
-   `git log --oneline -1 origin/main` and confirm your branch is cut from that commit.
-   The brief you work from - `TASK.md`, this file, `fixtures/` - lives on `main`, so a
-   checkout made before the last merge means reading a stale brief and reporting files as
-   missing when they are only unfetched. Then confirm `git status` is clean.
+1. **Sync before you read anything.** `git fetch origin`, then confirm your checkout is at
+   the tip of `origin/docs/phase-7-run-brief` — or of `origin/main` once that branch has
+   been merged; whichever tip carries this file's wording is the commit to cut
+   `phase-7-cold-run` from. The brief you work from - `TASK.md`, this file, `fixtures/` -
+   must travel with the run: a checkout made before the last push means reading a stale
+   brief and reporting files as missing when they are only unfetched. Then confirm
+   `git status` is clean.
 2. Read `docs/REFERENCE_PATTERN.md` if you have not this session. Ten minutes, and it
    prevents re-deriving decisions already made.
 3. Confirm `codex` is on PATH: `codex --version`. If not, you are on tier 3 for the whole
@@ -85,21 +89,28 @@ carries it down. Record which model each run used in the progress file.
    `fixtures/acme-d2c/` and compares byte for byte. If that fails, stop and fix it first —
    every gate is measured against it.
 5. Check the engagement state. `engagements/acme/` should hold `scope.md`, `corpus/` and a
-   ranked `findings.json`. Run `python tools/validate_findings.py engagements/acme/findings.json`.
-   If it reports the vetoed finding lacks `rank_veto_reason`, the file predates that rule —
-   `/rank acme --all` regenerates it, and that is the first thing to do.
+   ranked `findings.json` that passes
+   `python tools/validate_findings.py engagements/acme/findings.json`, and an
+   `investigation.json` that **fails** it on shape (it predates phase 6's movement figure —
+   that is the expected starting state, and U1 regenerates it). If the state is anything
+   other than this, **that is a finding**: record what you found and carry on with the
+   items that can still run. Do not run a command to repair the state — this phase repairs
+   nothing.
 
 ## The loop
 
-Per phase:
+This is a run phase, so the loop runs and records — it never edits the harness:
 
-1. Read the phase's section in `TASK.md` and the phase row in `BUILD_PLAN.md` §7. Together
-   they are the contract.
-2. Write the smallest thing that could satisfy it.
-3. Commit. One commit per meaningful change — **not one per phase**.
-4. Repeat until the gate below passes.
-5. Write `PROGRESS_PHASE_<N>.md`.
-6. Next phase.
+1. Take the next U-item from `PROGRESS_PHASE_6.md`'s table.
+2. Run it as specified — a fresh `general-purpose` subagent per command, `model: "opus"`,
+   the whitelist and scripted answers in the prompt, the report saved to `scratch/`.
+3. Grade the saved output against the item's pass condition, **afterwards**, in your own
+   context.
+4. Record the item in `PROGRESS_PHASE_7.md` — passed, failed, or not reached, with the
+   verbatim output for anything that failed — and commit the record. One commit per
+   meaningful result, from `.git/COMMIT_MSG`, never inline.
+5. Next item. A failure does not stop the loop unless it makes later items impossible; say
+   so when it does.
 
 **Commit from a file, never inline.** Write `.git/COMMIT_MSG`, then
 `git commit -F .git/COMMIT_MSG`. A long inline command stalls an unattended run.
@@ -179,8 +190,11 @@ answer.
 
 Stop the run, write the report, do not continue, if:
 
-- the same test fails three times with three different fixes
-- a gate check cannot be made to pass and you have exhausted the obvious
+- the pre-flight tests or the guard fail — the starting state is broken, and that is the
+  finding; do not fix and continue
+- the same command's run dies twice at the same point for environment reasons (a crashing
+  tool, a session limit that will not reset in time) and a third attempt would change
+  nothing
 - the design requires something `BUILD_PLAN.md` §5 forbids
 - you would need to edit the reference repo
 - client data has entered git — **stop immediately and report; do not attempt to clean
