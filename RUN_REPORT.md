@@ -276,91 +276,135 @@ bad investigation for it to kill; `/outcome`; and the calibration loop through
 
 *This is the deliverable: what the harness produced, end to end, on the synthetic client.*
 
+**Replaced by phase 7's cold run of 2026-09-07.** The previous engagement section was written
+under the ceiling rule phase 6 corrected, and by a session that had built the harness. This
+one comes from a single continuous run of `/scope` → `/outcome` by an agent that read no
+fixture, no plan and no earlier run's output. Every ceiling below is in rupees and every
+movement is a ratio recomputed over both terms, as fix 1 requires.
+
+**Read the last section first if you read only one.** The pipeline completed and reached the
+wrong answer, and that is the useful result.
+
 ## The question
 
 > Which customer, product or channel segments no longer cover their own variable cost, and
 > which of them should Acme stop serving or serve differently?
 
-**Baseline:** 19.7% contribution margin, Q1 FY26 (Jan–Mar 2026, inclusive) — computed by
-`/scope` from `financials/pnl_monthly.csv` three ways after refusing the 19% the brief and
-the CFO both offered, because a round number said in conversation is not a source.
-Out of scope: list prices, the fundraise.
+**Baseline:** 19.7236% contribution margin, Q1 FY26 (Jan–Mar 2026, inclusive) —
+`sum(contribution) / sum(net_revenue)` = 124,540.03 / 631,425.85, computed this run from
+`financials/pnl_monthly.csv`. A second derivation rebuilding contribution from its component
+lines agreed to **0.000000**. Out of scope: list prices, the fundraise.
 
 ## What `/discover` found, and what `/rank` put first
 
-Eleven findings from twelve files and 5,475 de-duplicated order lines. `/rank` vetoed the
-one that restated the baseline (the margin bridge — the question, not an answer) and put
-first, by score: Meta cost per new customer doubled (80), the return rate doubled (79),
-Google CAC flat while Meta's doubled (79), courier base rates +6% / +7% / +7.5% every
-January (76), and — the highest-impact finding the client did **not** already know —
-Supplier B's segment below its own variable cost (74).
+Seven findings. `/rank` scored them, applied the calibration table `/setup` had regenerated
+(`channel-spend −8`, `supplier +8`), and produced:
 
-## What `/investigate` established — sized in the baseline's unit
-
-| Cause | Strength | What the data says | Ceiling |
+| score | finding | verdict | calibration |
 |---|---|---|---|
-| **Supplier B's three SKUs no longer cover their variable cost, because their size block changed** | established | Supplier B's own return rate 11.36% → 60.47% of its orders (Q3 2024 → Q1 FY26), 77% coded sizing, on all three SKUs; the segment went from ₹15,384 of contribution to −₹12,762 before marketing (−₹21,752 after). The client did not know this | 7.30 pts of Q1 FY26 net revenue (₹46,122) |
-| The doubling of the return rate is the same cause, seen wider | established | Supplier B's own rise accounts for 5.66 of the 8.89 points; **Supplier A's own rise for 1.34**, the interaction of B's growing share with its worsening rate for 2.22, pure mix 0.08 — nothing unexplained | 5.21 pts — never added to the row above |
-| Meta's cost per new customer nearly doubled, and the rise is Meta-specific | **partial** | ₹352 → ₹666 per new customer; Google and Email fell. What the corpus cannot decide: Meta spend was scaled 2.6× while new Meta customers rose 1.3×, and no month since July 2025 has spent at 2024 levels — so the rise may be Acme's own scaling | up to 2.14 pts (₹13,537) |
+| 75 | `discount-code-stacking` | pursue | — |
+| 72 | `supplier-b-return-rate` | consider | — |
+| 72 | `revenue-per-order-decline` | consider | — |
+| 72 | `courier-rate-annual-rises` | consider | — |
+| 70 | `meta-cac-doubled` | consider | **−8** |
+| 63 | `meta-share-of-spend` | consider | **−8** |
+| 42 | `warehouse-rent-step` | park | — |
+
+**Second place is a three-way tie at 72, and the harness does not say how to break it.**
+Asked for the top three, the run took `discount-code-stacking`, `courier-rate-annual-rises`
+and `revenue-per-order-decline`, and dropped `supplier-b-return-rate`. Everything below
+follows from that.
+
+## What `/investigate` established — sized in rupees, and as a movement of the baseline
+
+| Cause | Strength | Ceiling | Movement of the baseline |
+|---|---|---|---|
+| `discount-code-stacking` — the Jan 2025 checkout change lets codes the catalogue calls single-use combine additively | established | **₹6,483.05** | 19.7236% → 20.5395% (**+0.8158 pts**) |
+| `courier-rate-annual-rises` — base-rate revisions account for ₹21.18 of the ₹21.10 rise per shipment | established | **₹11,267.11** | 19.7236% → 21.5080% (**+1.7844 pts**), denominator provably unchanged |
+| `revenue-per-order-decline` — falling booked value per order accounts for ₹74.95 of the ₹181.01 fall | partial | **₹19,570.95** | 19.7236% → 21.4627% (**+1.7391 pts**) |
+
+`validate_findings.py`: `OK - 3 investigation(s)`, exit 0. Three causes produced three
+different denominator behaviours — one moving with the numerator, one provably unchanged, one
+moving independently — and fix 1's schema held all three on findings it was never designed
+against.
 
 ## The recommendation (`/synthesize`)
 
-**Option B — fix Supplier B's sizing at the source and, in the same month, hold Meta at its
-2024 spend for one month to learn whether its cost per new customer follows.** Ceiling up to
-9.45 pts of Q1 FY26 contribution margin (7.30 established + up to 2.14 partial), against a
-19.7% baseline.
+**Option B — turn off code stacking, and tender the carriers.** Ceiling ₹11,267.11, movement
++1.7844 pts against a 19.7% baseline.
 
-| Option | Ceiling | Effort | Wrong if |
+| Option | Ceiling | Movement | Wrong if |
 |---|---|---|---|
-| A — fix Supplier B's sizing, nothing else (do-less) | 7.30 pts | medium | the 40%-of-cost write-down is a booking convention and returned garments are restocked — then the ceiling is 5.34 pts |
-| **B — A, plus hold Meta at 2024 spend for one month** | up to 9.45 pts | medium | as A; and if the Meta rise is Acme's own scaling, the hold returns nothing and costs a month of growth |
-| C — pull Supplier B's three SKUs now | at most the segment's recorded loss | easy | under the pickup-only convention the segment earns ₹2,404 before marketing and exit throws away the product's Q3 2024 contribution of ₹15,384 |
+| A — turn off code stacking | ₹6,483.05 | +0.8158 pts | the catalogue's single-use flag is advisory rather than intended |
+| **B — A, plus tender the carriers** | **₹11,267.11** | **+1.7844 pts** | the carrier rises are market-wide and no tender improves on them |
+| C — all three, incl. the order-value programme | ₹19,570.95 | +1.7391 pts | the order-value cause is partial, and its decomposition is incomplete |
 
-**First:** two questions to ops and finance before any option is chosen — the date(s)
-Supplier B changed its size block, and whether returned Supplier B garments are restocked
-or written off. The second decides between repairing the segment and pulling it.
+`check_recommendation.py`: `OK — every ceiling is rupees from recoverable_at_most; every
+movement is a recomputed ratio`, exit 0.
+
+**Note what the table does.** Option C has the largest rupee ceiling and a *smaller* movement
+than Option B: doing more moves the margin less. No pair of causes records `shared_rows: 0`,
+so each option is sized on its largest single cause by rupees while its movement is copied
+from that same cause — and the two metrics disagree in direction. The joint-recomputation
+formula, the centrepiece of phase 6's fix 1, was never reached in this engagement or in any
+other run of this phase.
 
 ## What `/review` attacked, and whether it survived
 
-A fresh reviewer, given the case inline and only the corpus to read, re-derived every
-figure and decomposed every rate by all eighteen export columns. No cause was killed:
+A fresh reviewer, given only the corpus. The run reproduced every number behind a kill before
+accepting it, as `review.md` Step 3 requires.
 
-- **Supplier B — wounded.** The segment is negative under both allocations and is the only
-  such segment; but the 7.30-pt ceiling is rupees over a static denominator — as a
-  movement of the margin it is **+5.02 pts (19.72% → 24.74%)**, because re-earned returns
-  lift net revenue too; sizing-coded returns alone give ₹32,938 (5.22 pts); and the rise's
-  first step is Q4 2024, before the window the mechanism names. Reproduced by the main
-  context.
-- **Return rate — survives; ceiling wounded** on the same denominator point (+3.67 pts of
-  margin, not 5.21).
-- **Meta — survives; partial stands.** Marginal CAC ₹1,763 per extra new customer against
-  ₹720–988 of twelve-month contribution per Meta-acquired customer: the one-month hold is
-  right under either hypothesis, and the recommendation *understates* its floor.
-- **Its sharpest point:** in margin terms, Option C's exit reaches 23.6–25.2%, so the
-  argument for repairing the segment over exiting it holds in rupees but not in margin
-  points. Nothing was applied; the human decides.
+- **`revenue-per-order-decline` — killed.** The investigation decomposed by `channel` and
+  concluded no channel could be acted on. By **supplier**, Supplier B alone is **−82.5172 of
+  the −181.0056 fall (45.6%)** and Supplier C *rose*. The verdict reverses on a field the
+  investigation never tested.
+- **The recommendation — killed, on the scope question's own terms.** It reports that no
+  segment fails to cover its variable cost. **Supplier B contributes −₹11,286.58 on
+  ₹50,103.05 of net revenue — −22.53%.** The question asked which segments no longer cover
+  their variable cost; the document answered "none"; the answer is wrong.
+- **`courier-rate-annual-rises` — wounded.** Its own common-cause candidate is `supported`
+  (both carriers +15.03%, 0.0030 pp apart) while the claim reads `established`.
+- **Option B is under-sized by 45%.** Its two causes act on disjoint P&L lines, so their
+  rupees add without double-counting: the true joint figure is **₹17,750.16 / +2.5821 pts**.
+  The overlap rule forbade the addition because the two causes share 63 orders — but sharing
+  an order is not sharing the money.
+- **Not reproduced:** the reviewer's own closing "+7.0840 pts" full-slate figure. The run got
+  +8.0714 and could not recover the reviewer's, and notes that it double-counts Supplier B
+  against the basket cause — the error the reviewer had just convicted Option C of. The
+  reviewer's itemised claims all reproduced; its summary arithmetic did not.
 
-## What the founder is asked to decide
+Nothing was applied. The human decides.
 
-1. **Answer two questions first** — when Supplier B's size block changed, and whether its
-   returns are restocked. Both are in ops' and finance's hands, not in the data.
-2. **Repair or exit Supplier B's segment.** Repair (Option A/B) is worth up to +5.0 pts of
-   margin if the write-down is real, +3.7 if garments are restocked; exit (Option C) reaches
-   a similar margin faster by giving up ₹15,384 a quarter of product that was profitable
-   eighteen months ago. The choice turns on the restocking answer.
-3. **Whether to test Meta at 2024 spend for one month.** The evidence says its cost per new
-   customer is Meta-specific but cannot separate Meta's auction from Acme's own scaling; the
-   hold settles that at the cost of one month's growth. *Recorded outcome (`/outcome`):
-   rejected — "Don't tell me to cut Meta. Tell me what to do instead." The founder sided
-   with the marketing lead; the hold was read as a cut in the run-up to the October sale.
-   The practice recorded it, and the next channel-spend finding ranks lower for it.*
-4. **What is not on the table:** list prices and the fundraise, as the brief asked; and the
-   warehouse, headcount and courier findings, which are real but below contribution or
-   outside a variable-cost question.
+## What `/outcome` recorded
+
+**Nothing.** Zero rows. `practice/tracker.csv` is byte-identical to how the run started.
+
+The recommended option's two causes are `discount-policy` and `shipping-logistics`. The
+owner's answers were written for a supplier cause and a channel-spend cause, and the
+recommendation contains neither — those two findings ranked #4 and #5 and never reached it.
+The run answered *skip* to all six rows rather than write a false `finding_type` into the file
+that feeds `/setup`'s calibration and every future `/rank`.
+
+## What a founder would be asked to decide — and why they should not be asked yet
+
+On the document as written: whether to turn off discount-code stacking and tender the
+carriers, for up to ₹11,267.11 a quarter, ₹17,750.16 if the two are correctly combined.
+
+**But the document should not go to the founder.** `/review` killed its central claim. The
+engagement asked which segments fail to cover their variable cost, and the one that does —
+Supplier B, at −22.53% of its own net revenue — was ranked fourth on a three-way tie, dropped
+by an undocumented tie-break, and never investigated. A previous engagement on this same
+corpus found it and called it the highest-impact thing the client did not know.
+
+**The honest summary of this engagement is that the machine ran and the loop did not close.**
+Every command succeeded, every validator passed, `/review` correctly caught the error — and
+then `/outcome` had no way to record it, because it only ever sees the causes that reached a
+recommendation. A triage failure is invisible to the practice's memory. The pipeline can run
+end to end, produce the wrong answer, have its own reviewer say so, and learn nothing.
 
 Every figure above traces to a query executed in the run that produced it, recorded in
-`engagements/acme/{findings,investigation}.json` and `recommendation.md` with the script
-text embedded.
+`engagements/acme/{findings,investigation}.json` and `recommendation.md` with the script text
+embedded.
 
 ---
 
@@ -422,3 +466,114 @@ run and pass condition for each.
 
 1. **Phase 7: the cold run**, U1 → U8, in a session that did not make these fixes.
 2. **A second corpus**, still — everything above is validated on one company.
+
+---
+
+# Run report — phase 7, the cold run, 2026-09-07
+
+Branch `phase-7-cold-run`, cut from `docs/phase-7-run-brief` at `307d7ba` (confirmed
+identical to `origin/docs/phase-7-run-brief`, so the brief travelled with the run). Nothing
+merged to `main`. **Nothing in `.claude/` or `tools/` was edited** — this phase runs the
+harness and records what it does.
+
+Every subagent was dispatched with `model: "opus"`, passed explicitly per `CLAUDE.md`. Eight
+runs, roughly 1.6M subagent tokens, about six hours including one session-limit death.
+
+## Status at a glance
+
+| Item | Result |
+|---|---|
+| U1 `/investigate` supplier-b | **FAILED** — validator only; both figure conditions passed |
+| U2 `/investigate` meta-cac | **PASSED** |
+| U3 `/synthesize` | **FAILED** — pass condition impossible under phase 6's own rule |
+| U4 `/review` | **FAILED** — precondition never existed |
+| U5 `/setup frameworks` | **PASSED** |
+| U6 `/rank acme --all` | **PASSED** on the mechanism |
+| U7 whole pipeline cold | **PASSED** — all seven commands |
+| U8 `/investigate` 3 slugs + `/synthesize` | **PASSED** — both clauses |
+
+Five passed, three failed, none unreached. Thirty-one findings, **none fixed**.
+
+## What each gate showed
+
+- **Tests**: 190 passing, 0 failing, before and after.
+- **Client-data guard**: proved failing on a staged fixture (exit 1, naming the path) and
+  clean unstaged (exit 0). Nothing under `engagements/` ever entered git.
+- **Review**: tier 1, Codex.
+- **Phase gate**: 6/6.
+
+## What worked
+
+**Fix 1 works at runtime, and generalises.** U1 and U2 produced correct movement objects with
+both terms moving and the ratio recomputed; the frozen-denominator figure appears nowhere in
+any record this phase wrote. U8 and U7 passed `validate_findings.py` and
+`check_recommendation.py` clean, exit 0, on documents the harness generated itself. U7's three
+causes produced three *different* denominator behaviours — one moving with the numerator, one
+provably unchanged, one moving independently — on findings the schema was never designed
+against. That is the strongest evidence in the phase that fix 1 is a real rule and not a
+special case.
+
+**Fix 2's calibration loop closes.** U5 regenerated `supplier +8` / `channel-spend −8` from
+the file's own formula; U6 showed `/rank` reading and applying it at exactly that magnitude;
+U7 showed the −8 landing on both channel-spend findings in a cold run.
+
+## What did not work, honestly
+
+**The overlap rule is broken in a way reading could not have found.** `shared_rows` counts
+orders touched, which is the wrong proxy for whether two rupee figures overlap. Consequences,
+all observed: the joint-recomputation formula — the centrepiece of fix 1 — has **never once
+executed**, in any run of this phase; no pair on either engagement recorded `shared_rows: 0`,
+including two genuinely unrelated causes that shared 11 orders by coincidence; U7's option
+ladder inverted, so Option C shows a bigger ceiling and a smaller movement than Option B; and
+U7's recommendation was under-sized by **45%** because two causes acting on disjoint P&L
+lines could not be added.
+
+**The loop can complete without closing.** U7's `/rank` hit a three-way tie at 72, dropped
+`supplier-b-return-rate` to #4 on a tie-break the harness does not document, and never
+investigated it. `/review` then identified exactly that cause as the answer the engagement
+missed. `/outcome` wrote zero rows — it only ever sees the causes that reached a
+recommendation, so a triage error is structurally invisible to the practice's memory. Every
+command succeeded and the practice learned nothing.
+
+**`/investigate` carries an answer key.** `investigate.md:290–300` works its example on Acme's
+Supplier B cause by name and prints ₹46,121.67 / ₹58,370 / 24.74% / +5.02 pts. A run must read
+that file before it can investigate anything. U1 derived ₹45,453.71 / +4.96 independently,
+which is how we know it did not copy — but the next run that hits those numbers exactly will
+be unfalsifiable.
+
+**Pre-registration is not pre-registered.** Three runs of `/investigate` on `meta-cac-doubled`
+produced three different alternative sets and two different verdicts, because the runner
+invents its own kill thresholds after Step 0 has shown it the previous run's. One run's
+`≤6,000` selected no months and forced `partial`; another's `≤8,000` selected three and gave
+`established`.
+
+**Two commands cannot both be obeyed.** `investigate.md:313` requires sibling entries copied
+byte-identical; `:422` forbids reporting until the whole-file validator passes. With any stale
+sibling, no single-slug run can satisfy both. It clears only when every entry is regenerated
+in one run, which U8 demonstrated.
+
+## What the next runbook should cover
+
+Phase 8 fixes. In priority order: the overlap proxy (Findings 6, 21, 28, 29 — one defect,
+four symptoms); the tie-break and the closed loop (27, 30); the answer key (2);
+pre-registration independence (4, 26); then the cheap parser and reporting bugs (7, 18, 24,
+25).
+
+**A second corpus is now overdue.** Everything above is one company, and U7 showed `/discover`
+and `/rank` reaching a materially different answer on the same corpus between runs — seven
+findings where the earlier engagement found eleven, and a different top three. That
+instability is itself worth a phase.
+
+## For the next agent
+
+The eight runners' own reports are in `scratch/acme/*.md`, gitignored, with their "where the
+command file fought you" sections — richer than the summaries in `PROGRESS_PHASE_7.md`. The
+starting state is snapshotted at `scratch/acme/00-starting-state/`, the pre-U7 state at
+`scratch/acme/07-pre-u7-state/`. `engagements/acme/` currently holds U7's output.
+
+Two cautions. Grade a run *after* its output is on disk, never during — and never in a session
+that has read `fixtures/acme-d2c/EXPECTED.md`. And when a run reports a defect in a command
+file, check the quoted line yourself before recording it; every quotation in the progress file
+was verified against the file by the orchestrating context, and one subagent claim
+(`check_recommendation.py` exiting 2) turned out to be an argparse usage error I had recorded
+wrongly in my own pre-flight.

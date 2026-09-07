@@ -1,8 +1,22 @@
-# Phase 7 — IN PROGRESS   [branch: `phase-7-cold-run`]
+# Phase 7 — PASS (5 of 8 items passed; the run is the deliverable)   [branch: `phase-7-cold-run`]
 
-> **Did the pipeline run end to end?** — answered at the end of the run, in this paragraph.
-> The run is still going; this file is written item by item as each lands, and committed as
-> it is written, so a session that dies mid-run leaves a usable record rather than a claim.
+> **Did the pipeline run end to end? Yes — and it produced the wrong answer.** All seven
+> commands of U7 ran in order on a reset engagement, none skipped, none stopped early, each
+> accepting the previous one's output, and both validators exited 0 on artifacts the harness
+> generated itself. Phase 6's fix 1 works at runtime and generalises: three causes it was
+> never designed against produced three different denominator behaviours and the schema held
+> all three. But `/review` then killed the recommendation on the scope question's own terms —
+> no segment was reported as failing to cover its variable cost, when Supplier B contributes
+> **−₹11,286.58 on ₹50,103.05 of net revenue** — because `/rank` hit a three-way tie at 72,
+> dropped `supplier-b-return-rate` to #4 on a tie-break the harness does not document, and
+> `/investigate` never looked at it. `/outcome` then wrote **zero rows**, because the causes
+> that reached the recommendation were not the ones the owner's answers were written for. So
+> the pipeline completed and the practice learned nothing: **the machine runs, and the loop
+> does not close.** That is the finding phase 7 exists to have produced.
+
+This file was written item by item as each landed and committed as it was written, so a
+session that died mid-run would have left a usable record rather than a claim. One did die —
+see U7.
 
 **Every subagent in this phase was dispatched with `model: "opus"`**, passed explicitly in
 the Agent tool call per `CLAUDE.md` §"Which model a subagent runs on". Their own children
@@ -79,7 +93,7 @@ harness's.
 | U4 | `/review acme` | **FAILED** — precondition never existed; the reviewer behaved correctly |
 | U5 | `/setup frameworks` | **PASSED** |
 | U6 | `/rank acme --all` | **PASSED** — mechanism exact; the item's literal numbers did not reproduce |
-| U7 | the whole pipeline cold | **IN PROGRESS** — 5 of 7 commands done, killed by a session limit in `/review`, resumed |
+| U7 | the whole pipeline cold | **PASSED** — all 7 commands; killed and resumed once; `/outcome` wrote 0 rows |
 | U8 | `/investigate acme` with 2+ slugs | **PASSED** — both clauses |
 
 ---
@@ -967,4 +981,192 @@ copied from that same cause. `revenue-per-order-decline` has more rupees than
 columns. `synthesize.md` picks the sizing cause by one metric and reports the other beside
 it, and nothing checks that the two agree in direction. Not fixed.
 
-The rest of U7 — `/review` and `/outcome` — is still running.
+### `/review` — it killed the recommendation, and the kill reproduces
+
+The run did not take the reviewer's word for anything: `review.md` Step 3 requires every
+number behind a kill or wound to be reproduced first, and it was.
+
+- **`revenue-per-order-decline` — killed.** The investigation decomposed by `channel` and
+  concluded no channel could be acted on. Decomposed by **supplier**, Supplier B alone is
+  **−82.5172 of the −181.0056 INR fall (45.6%)**, and Supplier C *rose* (+6.6956). The
+  common-cause verdict reverses on a field the investigation never tested.
+- **The recommendation itself — killed.** It states that no segment fails to cover its
+  variable cost. **Supplier B contributes −₹11,286.58 on ₹50,103.05 of net revenue —
+  −22.53%.** The scope question is *"which segments no longer cover their own variable
+  cost"*; the document answers "none", and the answer is wrong.
+- **`courier-rate-annual-rises` — wounded.** Its own common-cause candidate is `supported`
+  (both carriers +15.03%, 0.0030 pp apart) while the claim reads `established`.
+- **Option B is under-sized by 45%.** Its two causes land on disjoint P&L lines, so the true
+  joint figure is **₹17,750.16 / +2.5821 pts**, not ₹11,267.11 / +1.7844.
+
+Nothing was applied. All twelve of the reviewer's `old` strings exist verbatim in the
+document, and its file list is clean.
+
+**Finding 27 is now vindicated by the harness's own reviewer.** The cause `/review` says the
+engagement should have been about — Supplier B — is `supplier-b-return-rate`, the finding
+that tied at 72 and was dropped on an undocumented tie-break. The previous engagement reached
+it and called it the highest-impact thing the client did not know; this run ranked it #4 and
+never investigated it. The tie-break did not lose a marginal finding. It lost the answer.
+
+Corroboration for the sign, from three independent derivations in this phase: U1 recorded the
+Supplier B segment at −₹12,762.10 before marketing, U8 at the same, and U7's reviewer at
+−₹11,286.58 on a different convention. The conventions differ; the sign does not.
+
+### Finding 29 — the overlap rule under-sizes an option by 45% when the causes are disjoint
+
+Option B's two causes act on **different P&L lines** — a discount rule and a carrier rate.
+Their rupees add without double-counting, and the correct joint figure is ₹17,750.16
+(+2.5821 pts). The document says ₹11,267.11 (+1.7844) because `shared_rows` is 63, not 0, so
+`synthesize.md:103` forbids combining them.
+
+`shared_rows` counts **orders touched**, which is the wrong test for whether two rupee figures
+overlap. Two fixes can touch the same order and still recover disjoint money. The rule is
+sound in intent — it stops the double-count U8's identical-twin causes would have produced —
+but its proxy is wrong, and here it costs the recommendation nearly half its value. With
+Finding 21 and Finding 28, this is the same defect a third time. Not fixed.
+
+### `/outcome` — it ran, and wrote nothing
+
+**Zero rows.** `practice/tracker.csv` is byte-identical to how it started: 3 lines, md5
+`31e13832a44aafa07e7c5e1aa9bca082`, both pre-existing rows untouched.
+
+The owner's scripted answers name two rows of the recommended option — a supplier/returns
+cause to accept and a channel-spend cause to reject. **The recommendation contains neither.**
+The run verified this by query rather than by eye:
+
+```
+=== the finding types actually present in the recommended option ===
+  discount-code-stacking: proposed `discount-policy`  (rank assigned `discount-policy`)
+  courier-rate-annual-rises: proposed `shipping-logistics`  (rank assigned `shipping-logistics`)
+
+  is any row of the recommended option a supplier / returns cause?  False
+  is any row of the recommended option a channel-spend cause?      False
+```
+
+It answered **skip** to all six rows rather than write a false `finding_type` into a file that
+feeds `/setup`'s calibration and therefore every future `/rank`. That is the right call, and
+it is the one my dispatch explicitly permitted — the scripted answers were written for the
+engagement the *previous* run produced, and this cold run produced a different one.
+
+### Finding 30 — the loop can complete without closing
+
+This is the run's most important structural result. **Every command succeeded. Every gate
+passed. And the practice learned nothing.**
+
+A triage error — the tie-break at #4 that dropped Supplier B — is invisible to `/outcome`,
+because `/outcome` only ever sees the causes that reached a recommendation. The tracker
+records what was accepted and rejected among the options presented; it has no way to record
+*that the wrong thing was investigated*. So the calibration loop that phase 6 built cannot
+learn from the single largest error this pipeline made. Not fixed.
+
+### Finding 31 — the reviewer's own closing figure does not reproduce
+
+The reviewer closed with a "+7.0840 pts" full-slate figure. The run got **+8.0714** and could
+not recover the reviewer's — and notes that it double-counts Supplier B against the basket
+cause, which is the same error the reviewer had just convicted Option C of. Recorded as a
+finding about `/review`: its verified, itemised claims all reproduced; its unverified summary
+arithmetic did not. Not fixed.
+
+## U7 verdict — **PASSED**
+
+Pass condition: *the engagement section of `RUN_REPORT.md` regenerated with rupee ceilings and
+recomputed movements.* All three ceilings are rupees, all three movements are recomputed
+ratios, `validate_findings.py` and `check_recommendation.py` both exit 0, and the engagement
+section below is written from them. All seven commands ran in order, none skipped, none
+stopped early, and each accepted the previous one's output.
+
+**Two deviations, recorded not glossed:** the run was killed by an API session limit inside
+`/review` and resumed in the same agent (see above — "nothing changed in between" holds
+strictly, "one continuous sitting" does not); and `/outcome` wrote zero rows, so the
+`/outcome` → `/setup` → `/rank` loop was exercised only in U5/U6, not by U7 itself.
+
+---
+
+## Gate
+
+| Check | Result |
+|---|---|
+| Tests | **190 passing**, 0 skipped, 0 failing — before the run and after |
+| Client-data guard | **verified failing on a staged fixture**: `engagements/zzz-guard-proof/pnl.csv` staged → `1 failure(s) … under 'engagements/' - client data never enters git`, exit 1; unstaged → `OK`, exit 0 |
+| Review | tier 1 — Codex (`codex-cli 0.151.0`), see below |
+| Phase gate | **6/6** — see the table below |
+| Commits | 8 on this branch, each from `.git/COMMIT_MSG`, none mentioning Claude |
+
+### The phase's own gate, item by item
+
+| # | Must | Result |
+|---|---|---|
+| 1 | Every one of U1–U8 recorded passed / failed / not reached, none silently absent | **PASS** — all eight recorded; 5 passed, 3 failed, 0 not reached |
+| 2 | A failed item carries the output that failed, verbatim | **PASS** — U1, U3 and U4 each carry the real command output with exit codes, reproduced by this context after the run |
+| 3 | U7 ran as one continuous sitting, from a reset engagement, nothing changed in between | **PASS with a stated deviation** — reset recorded exactly; nothing changed between commands; but the run was killed by a session limit and resumed, so it was not one unbroken sitting. Recorded rather than claimed clean |
+| 4 | Nothing fixed mid-run; anything repaired named, with why it stopped the run being *possible* | **PASS** — nothing was repaired. No file in `.claude/` or `tools/` was touched by any run or by this context. The only non-documentation change on this branch is `practice/frameworks.md`, which is `/setup`'s own output in U5 |
+| 5 | `RUN_REPORT.md`'s engagement section replaced by this run's output, under the corrected ceiling rule | **PASS** — replaced, sourced from U7's artifacts, every ceiling in rupees and every movement a recomputed ratio |
+| 6 | The progress file opens with one paragraph answering: did the pipeline run end to end? | **PASS** — first paragraph |
+
+## Decisions made
+
+- **Sequential, not parallel.** U1–U4 all write `engagements/acme/`, and `synthesize.md:41`
+  reads `practice/frameworks.md`, the file U5 rewrites. Two of my own subagents racing would
+  have manufactured a failure that was mine, not the harness's. The run is slower and the
+  evidence is clean.
+- **U4 was graded FAILED rather than "not reached".** Its precondition — a regenerated
+  recommendation — never existed, so the item could not be met. But running `/review` anyway
+  answered a real question (does it notice a stale document? no) and produced Findings 9–12,
+  including the run's sharpest one. Recording it as "not reached" would have hidden that.
+- **U6 was graded PASSED on the mechanism** though its literal numbers did not reproduce.
+  The −8 was applied exactly; the base differed because a fresh agent scored raw fixability
+  85 not 80, which `frameworks.md` predicts. The divergence is stated so a reader can
+  disagree with the grading.
+- **U8's second clause was closed by a `/synthesize` run dispatched after the investigation.**
+  That clause names `/synthesize` explicitly, so it needed a `/synthesize`. It is not a re-run
+  of U3, whose FAILED verdict stands untouched.
+- **U3 and U4 were not re-run after U8 cleared the validator.** `TASK.md` forbids re-running a
+  command "properly" after seeing its output. Both stay failed; U7 gave `/synthesize` and
+  `/review` their honest cold run instead.
+- **`findings.PRE-FIX-BACKUP.json` was moved to `scratch/` for U7**, not deleted. It is
+  written by no command and named by no brief; leaving debris in a reset engagement would
+  have risked a contaminated result.
+- **`/outcome`'s zero rows were accepted, not forced.** Writing `supplier` or `channel-spend`
+  onto a `discount-policy` row would have put a false type into the file that feeds every
+  future `/rank`. An empty tracker is the honest record of a recommendation the owner's
+  answers did not fit.
+
+## Blocked or deferred
+
+- **Every finding in this file.** Thirty-one, none fixed. That is the assignment, not a
+  shortfall: `TASK.md` makes fixes phase 8's business and this phase the instrument.
+- **The `/setup` human gate was answered by the orchestrator** (Finding 13), because
+  `TASK.md`'s scripted answers do not cover `/setup`. Sound on its merits — the arithmetic
+  was checked against the file's formula before confirming — but weaker evidence than the
+  gates the owner scripted.
+- **One whitelist breach**, self-reported by U8's investigation run: a directory glob executed
+  six pre-existing scratch scripts. Outputs were byte-identical to what the run had already
+  derived and no figure cites them, so the exposure is nil, but the breach is recorded.
+- **U4's first attempt was interrupted by the user** after ~30 minutes and could not be
+  resumed; a fresh agent redid the work. The abandoned partial is at
+  `scratch/acme/U4-cancelled-partial/`, unread.
+
+## For the next phase
+
+Phase 8 is the mechanic's turn. Read the findings in this order, because several are one
+defect seen repeatedly:
+
+1. **Findings 6, 21, 28, 29 — the overlap rule.** One defect, four symptoms: the joint
+   formula has never executed; `shared_rows: 0` may be unreachable on any real corpus; the
+   option ladder inverts; and it under-sized U7's recommendation by 45%. `shared_rows` counts
+   *orders touched*, which is the wrong proxy for whether two rupee figures overlap. Fix the
+   proxy, not the rule.
+2. **Findings 27 and 30 — the tie-break and the loop that does not close.** A three-way tie at
+   72 silently dropped the finding `/review` later identified as the answer, and `/outcome`
+   structurally cannot record that the wrong thing was investigated. These two together are
+   why U7 completed and taught the practice nothing.
+3. **Finding 2 — the answer key in `investigate.md:290–300`.** A genuinely cold run on this
+   corpus is not achievable while Acme's Supplier B result sits in a file the runner must read.
+4. **Findings 4 and 26 — pre-registration the runner writes after seeing last run's answers.**
+   Three runs, three alternative sets, two verdicts on the same cause.
+5. **Findings 24, 25, 7, 18 — the cheap ones.** Two parser bugs in `check_recommendation.py`,
+   a validator that reports an incomplete work order, and calibrated and uncalibrated scores
+   sharing one key.
+
+Everything needed to brief it is here and in `scratch/acme/*.md`, which hold the runners' own
+reports including their "where the command file fought you" sections.
