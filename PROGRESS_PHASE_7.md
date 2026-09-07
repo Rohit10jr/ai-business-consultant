@@ -80,7 +80,7 @@ harness's.
 | U5 | `/setup frameworks` | **PASSED** |
 | U6 | `/rank acme --all` | **PASSED** — mechanism exact; the item's literal numbers did not reproduce |
 | U7 | the whole pipeline cold | not yet run |
-| U8 | `/investigate acme` with 2+ slugs | not yet run |
+| U8 | `/investigate acme` with 2+ slugs | **PASSED** — both clauses |
 
 ---
 
@@ -695,3 +695,145 @@ Clean, for the record: 11 findings → 3 excluded by `--all`, 1 vetoed
 (`contribution-margin-bridge-q3-2024-to-q1-fy26`, restates the baseline — the veto phase 3
 built, still firing), 7 scored. All 60 figures carry `query_text`, `rows_in` and `rows_out`.
 The rewrite was verified byte-identical apart from `status` and the `rank_*` keys.
+
+---
+
+## U8 — `/investigate acme` with three slugs, then `/synthesize` — **PASSED**
+
+Two dispatches, both Opus. The investigation:
+`/investigate acme return-rate-doubled supplier-b-returns-negative-contribution meta-cac-doubled`
+— 78 tool calls, 253k tokens, 26 minutes, report `scratch/acme/U8-investigate-three-slugs.md`.
+Then `/synthesize acme` to close the second clause — 47 tool calls, 185k tokens, 15.5
+minutes, report `scratch/acme/U8b-synthesize.md`.
+
+Both clauses of the pass condition hold.
+
+**Clause 1 — `overlaps` carries a `shared_rows` count per pair, from a query.** All three
+present, all from queries executed in that run:
+
+| pair | `shared_rows` |
+|---|---|
+| return-rate-doubled × supplier-b-returns-negative-contribution | **52** |
+| return-rate-doubled × meta-cac-doubled | **11** |
+| supplier-b-returns-negative-contribution × meta-cac-doubled | **11** |
+
+The returns pair is recorded as overlapping on the same returns — identical row sets, the
+same fix seen wide and narrow — which is exactly what the clause requires.
+
+**And the validator passed, clean, first attempt:**
+
+```
+$ python tools/validate_findings.py engagements/acme/investigation.json
+validate_findings: OK - 3 investigation(s), every alternative carries its query and the decomposition reconciles
+exit=0
+```
+
+The first clean validator pass of the entire run. This is Finding 1's deadlock clearing
+itself the only way it can — every entry regenerated in one run, so nothing stale is left for
+the whole-file check to catch. It confirms the deadlock is transitional, and equally that a
+single-slug run cannot escape it.
+
+**Clause 2 — `/synthesize` declines to combine.** It completed, wrote three options, and
+combined nothing:
+
+```
+34: - Ceiling: ₹46,014.76 [supplier-b-returns-negative-contribution · recoverable_at_most]
+44: - Ceiling: ₹46,014.76 [supplier-b-returns-negative-contribution · recoverable_at_most] — sized on
+      the larger cause alone, not the sum. … two causes are combined only when their pair is recorded
+      with no shared rows at all; Meta's own up-to ceiling is named above and is not added to this line.
+54: - Ceiling: up to ₹13,537.11 [meta-cac-doubled · recoverable_at_most] — partial …
+```
+
+```
+$ python tools/check_recommendation.py …recommendation.md …investigation.json …scope.md
+check_recommendation: OK - every figure in recommendation.md traces to the investigation, the
+baseline, or shown arithmetic; every ceiling is rupees from recoverable_at_most; every movement
+is a recomputed ratio
+exit=0
+```
+
+**Fix 1's checker passing on a document the harness actually generated** — rupee ceilings,
+recomputed movements, exit 0. Alongside U1 and U2's movement objects, that is the phase's
+positive result.
+
+### Finding 6 confirmed at runtime — the Arithmetic section is empty
+
+`recommendation.md:142`:
+
+> ## Arithmetic
+>
+> No figure in this document is computed. Every ceiling is one `recoverable_at_most` value
+> quoted whole, and every movement is one `baseline_movement_at_most` triple quoted whole,
+> because no pair of causes in this investigation is recorded with no shared rows and so no
+> option could be sized on more than one cause.
+
+On a clean, validator-passing record, the joint-recomputation formula was still never
+reached. U3 predicted this from the overlap counts; U8 demonstrates it in a generated
+document.
+
+### Finding 21 — the `shared_rows: 0` gate looks unreachable on real data
+
+Meta and Supplier B share **11** rows by volume coincidence alone — two unrelated fixes that
+happen to touch the same orders. The returns pair shares **52**, which are *identical row
+sets*. The counter reports the same kind of signal for both, so it cannot distinguish "the
+same ₹46,014.76 counted twice" from "eleven orders two unrelated fixes both touch". If no
+pair on a real corpus can ever record 0, the combine path is dead code and the joint formula
+is unreachable by construction. Not fixed.
+
+### Finding 22 — the overlap rule flattens the option spread
+
+Options A and B carry **identical** `Ceiling:` and `Movement:` lines (₹46,014.76, +5.0066
+pts), because B may not add Meta's ₹13,537.11. A founder comparing them sees two options
+worth exactly the same and could reasonably read it as "Meta is worth nothing". The run wrote
+a disclaimer into Option B on its own initiative; the command file does not ask for one.
+
+### Finding 23 — two causes came back identical in every figure, and the file has no rule for a tie
+
+`return-rate-doubled` and `supplier-b-returns-negative-contribution` were written with the
+same ceiling (₹46,014.76), the same movement (19.7236% → 24.7302%, +5.0066 pts), the same
+86 rows in / 52 out. `/synthesize`'s instruction is to size on *"the larger cause alone"* —
+which has no referent when neither is larger, and the file says nothing about ties. The run
+decided for itself: treat them as one lever, take the figure once, cite the Supplier B entry
+because its `known_to_client` is `false`. Figure-neutral here, and safe only for that reason
+— a *near*-tie would have picked a winner on noise. Not fixed.
+
+### Findings 24 and 25 — two defects in `check_recommendation.py` that will recur
+
+- **Signs are stripped before matching, then matched against signed values.**
+  `tools/check_recommendation.py:264`: `tok = pm.group(1).replace(",", "").lstrip("+−-")`,
+  then `_matches_recorded(tok, …)`. So a recorded `-0.3390 points` is looked up as `0.3390`
+  and rejected. Two of the three claims contain exactly that construction, while
+  `synthesize.md` demands the claim sentence **verbatim** — the two requirements are mutually
+  exclusive on this record. The run complied by eliding three fragments with `[…]` and
+  restating the signed figures; that is the one place the document is not verbatim, and it is
+  the checker's fault, not the writer's.
+- **A comma-grouped rupee figure without a `₹` mark parses as its tail** — `46,014.76`
+  becomes `014.76`. The Evidence template's bare `value` column invites precisely this, and
+  eight of twelve first-run findings hit it.
+
+Also flagged by the run and worth carrying: the `Movement:` line's prescribed format treats
+every digit on the line as a movement figure, so a `Q1 FY26` label would be read as `1` and
+`26`.
+
+### Finding 26 — a third verdict on `meta-cac-doubled`, from a third set of alternatives
+
+U8 recorded it **`partial`**. The previous run said `partial`; U2 said `established`. But U8's
+reason is new: `orders_export.csv` has 18 columns and none is an attribution field, so
+whether Meta spend earned the Organic/Referral first orders cannot be decided, leaving one
+alternative `not_ruled_out`.
+
+So three runs produced three different pre-registration sets and two different verdicts.
+Finding 4 is worse than U2 alone showed: it is not one badly-chosen threshold, it is that the
+alternatives themselves are reinvented every run, and the claim strength follows whichever
+set the runner happened to write down.
+
+### Deviation — a whitelist breach, self-reported
+
+The investigation run's `run_all.py` globbed a directory and inadvertently executed **six
+pre-existing scratch scripts** from an earlier run. The run reported this unprompted. The
+exposure was checked and is harmless: the outputs were byte-identical to what the run had
+already extracted from `findings.json`, and no figure in the record cites them. Recorded
+because a whitelist breach discovered by the breaching party is still a breach, and because
+the `/synthesize` dispatch that followed carried an explicit ban on globbing a directory.
+Also noted by that run: `findings.json` and `investigation.json` were read via scripts rather
+than the Read tool, on size grounds (641 KB / 859 KB).
